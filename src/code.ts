@@ -14,7 +14,7 @@ import {
 } from "./fields";
 import { planFillByName } from "./functions/fillByName";
 import { loadTableFonts, writeText, WriteTally } from "./functions/fonts";
-import { centeredAt, findFreeSpot, isInside, Rect } from "./functions/placement";
+import { centeredAt, findFreeSpot, Rect } from "./functions/placement";
 import {
   addRegenerateButton,
   describeRegenerateResult,
@@ -460,8 +460,15 @@ async function generateTable(
   tableFrame.y = spot.y;
   figma.currentPage.selection = [tableFrame];
 
-  // Only move the view if the table isn't fully visible where it landed
-  if (!isInside(spot, figma.viewport.bounds)) {
+  // Always bring the new table into view: center on it at the current zoom, or zoom out
+  // only if it's too big to fit
+  const view = figma.viewport.bounds;
+  if (spot.width <= view.width && spot.height <= view.height) {
+    figma.viewport.center = {
+      x: spot.x + spot.width / 2,
+      y: spot.y + spot.height / 2,
+    };
+  } else {
     figma.viewport.scrollAndZoomIntoView([tableFrame]);
   }
 

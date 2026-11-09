@@ -268,7 +268,9 @@ at 360×620 with headless Edge. The window was then raised to 360×700, so the t
   there, and the view jumped to them. Now `findFreeSpot` (`placement.ts`, pure and tested) starts
   from a rectangle centered on `figma.viewport.center`. If it overlaps any top-level layer on the
   page, with 80px to spare, it moves right past those layers and repeats until clear, keeping
-  the same height. The view only scrolls/zooms if the table isn't fully visible where it landed.
+  the same height. The view then always centers on the new table at the current zoom, and
+  zooms out only if the table doesn't fit. Abhijit checked the centering and asked for the
+  scroll to always happen.
 
 ---
 
@@ -292,7 +294,8 @@ Import `manifest.json` via *Plugins → Development → Import plugin from manif
 - [ ] Fill a text layer whose font is missing: switches to Inter at the closest weight, notification shown
 - [ ] Nothing selected / only non-text selected: one "select text layers" notification
 - [ ] Table with 1, 10 and 200 users; 201 users is rejected with a message
-- [ ] New table appears in the middle of the current view; on an empty area the view doesn't move
+- [x] New table appears in the middle of the current view (checked by Abhijit)
+- [ ] After adding a table, the view centers on it (same zoom; zooms out only for big tables)
 - [ ] New table next to existing frames: it lands to the right of them, never on top
 - [ ] JSON and CSV export (CSV opens in Excel/Sheets with addresses in one column)
 - [ ] Select a filled text layer: "Regenerate data" button appears in the properties panel and works

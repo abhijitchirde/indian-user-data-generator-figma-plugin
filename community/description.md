@@ -1,7 +1,12 @@
 # Figma Community page text
 
-The full description is in [`../figma-page-description.md`](../figma-page-description.md),
-kept up to date with every change to the plugin. Copy it into the Description field.
+Two versions, both kept up to date with every change to the plugin. Copy one into the
+Description field:
+
+- [`../figma-page-description-brief.md`](../figma-page-description-brief.md): the short one
+  used on the Community page
+- [`../figma-page-description.md`](../figma-page-description.md): the full one, with every
+  feature and data type
 
 ## Tagline (short description)
 

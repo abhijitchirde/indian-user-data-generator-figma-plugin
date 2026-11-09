@@ -23,12 +23,9 @@ export interface UiPrefs {
   tableUsers: number | string;
   /** Profession domain in the table tab */
   tableDomain: string;
-  /** Optional seed: same seed, same users ("" = random each time) */
-  tableSeed: string;
 }
 
 export const MAX_USERS_INPUT = 10000;
-export const MAX_SEED_LENGTH = 40;
 
 export const DEFAULT_PREFS: UiPrefs = {
   tab: "1",
@@ -36,7 +33,6 @@ export const DEFAULT_PREFS: UiPrefs = {
   tableSelection: tableSelection("default"),
   tableUsers: 1,
   tableDomain: "Random",
-  tableSeed: "",
 };
 
 const isDomain = (value: unknown): value is string =>
@@ -63,7 +59,5 @@ export function sanitizePrefs(raw: unknown): UiPrefs {
     tableSelection: selection,
     tableUsers: users >= 1 ? Math.min(users, MAX_USERS_INPUT) : 1,
     tableDomain: isDomain(stored.tableDomain) ? stored.tableDomain : "Random",
-    tableSeed:
-      typeof stored.tableSeed === "string" ? stored.tableSeed.slice(0, MAX_SEED_LENGTH) : "",
   };
 }

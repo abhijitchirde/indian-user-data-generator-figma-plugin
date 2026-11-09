@@ -7,7 +7,7 @@ import {
   selectionKey,
   tableSelection,
 } from "../fieldMeta";
-import { MAX_SEED_LENGTH, MAX_USERS_INPUT } from "../prefs";
+import { MAX_USERS_INPUT } from "../prefs";
 import Accordion from "./Accordion";
 import DataCheckbox from "./DataCheckbox";
 import ProfessionSelectionForTable from "./ProfessionSelectionForTable";
@@ -27,8 +27,6 @@ interface Props {
   onUsersChange: (users: number | string) => void;
   domain: string;
   onDomainChange: (domain: string) => void;
-  seed: string;
-  onSeedChange: (seed: string) => void;
 }
 
 const SecondTab = ({
@@ -43,8 +41,6 @@ const SecondTab = ({
   onUsersChange,
   domain,
   onDomainChange,
-  seed,
-  onSeedChange,
 }: Props) => {
   const chkData = selection;
   const usersInput = users;
@@ -247,27 +243,6 @@ const SecondTab = ({
                 </svg>
               </button>
             </div>
-          </div>
-
-          <div className="input-div seed-row">
-            <label className="input-label" htmlFor="seed">
-              Seed
-            </label>
-            <input
-              className="seed-input"
-              type="text"
-              id="seed"
-              value={seed}
-              maxLength={MAX_SEED_LENGTH}
-              placeholder="Optional"
-              title={
-                "Any word or number, up to 40 characters (e.g. demo, 42, sprint-12). " +
-                "The same seed always gives the same users in the table, JSON and CSV, " +
-                "even if you tick more fields or ask for more users. Exact text: Demo and demo differ. " +
-                "Leave empty for new users each time."
-              }
-              onChange={(e) => onSeedChange(e.target.value)}
-            />
           </div>
 
           <div className="buttons-container">

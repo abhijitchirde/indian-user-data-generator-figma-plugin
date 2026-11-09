@@ -85,7 +85,7 @@ Deferred: Abhijit chose to do Phase 5 first.
 - [x] 5.2 Persist UI choices with `figma.clientStorage` (theme, open tab, table fields, user count, both profession domains)
 - [x] 5.3 Copy-to-clipboard next to JSON/CSV download
 - [x] 5.4 Quick actions via manifest `parameters`
-- [x] 5.5 Seeded randomness
+- [ ] ~~5.5 Seeded randomness~~ (dropped: built, then removed at Abhijit's request)
 - [ ] 5.6 Auto-layout canvas table, "rows = users" layout, native FigJam table
 
 ---
@@ -258,19 +258,9 @@ at 360×620 with headless Edge. The window was then raised to 360×700, so the t
   window. `fillSelection` / `fillByLayerNames` return an `Outcome` message instead of calling
   `figma.notify`, so the same text works as a toast and as the `closePlugin` message.
   Professions from quick actions use the "Random" domain.
-- **5.5** All generators draw from `rng()` (`src/functions/random.ts`) instead of `Math.random`.
-  A "Seed" field (optional, saved with the other choices) sits under "Number of users" in
-  "Create user sets". It applies to the canvas table, JSON, CSV and both copies. With a seed,
-  `Person.get` generates each value inside `withStream("seed|userNumber|field")`, which is
-  mulberry32 seeded with an FNV-1a hash of that key and restored afterwards, also after an error.
-  So every value has its own sequence. The same seed and user number give the same person
-  whatever fields are ticked, in whatever order they're read (table vs export), however many
-  users are asked for, and whichever profession domain is picked (only the profession changes).
-  A first version used one sequence per request, so ticking one more field changed every later
-  user; it was replaced the same day. Seeds are any text up to 40 characters, matched exactly
-  (case and leading zeros count, surrounding spaces don't). Filling text layers and Regenerate stay
-  random. Limitation: dates and ID years are relative to the current year, so a seed reproduces
-  the same users within a calendar year.
+- **5.5** Dropped. A "Seed" field in "Create user sets" (same seed, same users in the table,
+  JSON and CSV, with per-field seeded sequences) was built in `96c2988` / `3fbc9b9` and then
+  reverted because the feature isn't needed. Revert the revert commit to bring it back.
 - **5.6** Table built with auto layout (hug height, fixed column width, wrapped text). Option for
   users as rows. `figma.createTable()` when `figma.editorType === "figjam"`.
 
@@ -327,8 +317,6 @@ Import `manifest.json` via *Plugins → Development → Import plugin from manif
       layers without opening the plugin; "aadhaar" finds UID (Aadhar)
 - [ ] Quick actions: "Fill by layer names" and "Regenerate selected data" work on the selection
 - [ ] Opening the plugin from the Plugins menu still shows the window
-- [ ] Seed "demo": the table, JSON and CSV show the same users; making the table again with the
-      same seed gives the same users; an empty seed gives new users each time
 - [ ] "Copy: JSON" puts formatted JSON on the clipboard, with a "Copied N users as JSON" toast
 - [ ] "Copy: For spreadsheets" pastes into Google Sheets / Excel with one value per cell
       (addresses with commas stay in one cell)

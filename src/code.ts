@@ -83,17 +83,6 @@ function notifyOutcome(outcome: Outcome) {
   if (!outcome.quiet) figma.notify(outcome.message, { timeout: 4000 });
 }
 
-/** Users for JSON, CSV and copies; an optional seed makes them reproducible */
-function userRecords(
-  data: { chkData: FieldSelection; profDomain?: string; seed?: string },
-  count: number
-) {
-  return generateRecords(data.chkData, count, {
-    profDomain: data.profDomain,
-    seed: data.seed,
-  });
-}
-
 /** Validates the requested number of users, notifying the user when it is invalid */
 function parseUserCount(value: unknown, max: number): number | null {
   const count = Number(value);
@@ -153,14 +142,16 @@ async function handleMessage(msg) {
   if (msg.type === "generate-table") {
     const count = parseUserCount(msg.data.noOfUsers, MAX_TABLE_USERS);
     if (count !== null) {
-      await generateTable(msg.data.chkData, count, msg.data.profDomain, msg.data.seed);
+      await generateTable(msg.data.chkData, count, msg.data.profDomain);
     }
   }
 
   if (msg.type === "export-json") {
     const count = parseUserCount(msg.data.noOfUsers, MAX_EXPORT_USERS);
     if (count !== null) {
-      const records = userRecords(msg.data, count);
+      const records = generateRecords(msg.data.chkData, count, {
+        profDomain: msg.data.profDomain,
+      });
       figma.ui.postMessage({ type: "json-export-ready", data: records });
       figma.notify(`JSON export for ${count} user(s) generated successfully.`, {
         timeout: 2500,
@@ -171,7 +162,9 @@ async function handleMessage(msg) {
   if (msg.type === "export-csv") {
     const count = parseUserCount(msg.data.noOfUsers, MAX_EXPORT_USERS);
     if (count !== null) {
-      const records = userRecords(msg.data, count);
+      const records = generateRecords(msg.data.chkData, count, {
+        profDomain: msg.data.profDomain,
+      });
       figma.ui.postMessage({
         type: "csv-export-ready",
         data: recordsToCSV(msg.data.chkData, records),
@@ -187,7 +180,9 @@ async function handleMessage(msg) {
   if (msg.type === "copy-json" || msg.type === "copy-tsv") {
     const count = parseUserCount(msg.data.noOfUsers, MAX_EXPORT_USERS);
     if (count !== null) {
-      const records = userRecords(msg.data, count);
+      const records = generateRecords(msg.data.chkData, count, {
+        profDomain: msg.data.profDomain,
+      });
       const isJSON = msg.type === "copy-json";
       figma.ui.postMessage({
         type: "copy-ready",
@@ -411,22 +406,14 @@ function createDataSection(
 async function generateTable(
   selection: FieldSelection,
   userCount: number,
-  profDomain?: string,
-  seed?: string
+  profDomain?: string
 ) {
-  const fields = selectedTableFields(selection);
-  if (fields.length === 0) {
+  if (selectedTableFields(selection).length === 0) {
     figma.notify("Please select at least one field", { timeout: 1500 });
     return;
   }
 
   await loadTableFonts();
-
-  // User i with a seed is the same person as user i in the JSON/CSV with that seed
-  const people = Array.from(
-    { length: userCount },
-    (_, i) => new Person({ profDomain, seed, index: i + 1 })
-  );
 
   // Adjust data column width based on whether addresses are included
   generateTableDataWidth =
@@ -445,8 +432,9 @@ async function generateTable(
   tableFrameWidth += generateTableLabelWidth;
 
   for (let i = 1; i <= userCount; i++) {
+    const person = new Person({ profDomain });
     tableFrame.appendChild(
-      createDataSection(i, people[i - 1], selection, tableFrameHeight)
+      createDataSection(i, person, selection, tableFrameHeight)
     );
     tableFrameWidth += generateTableDataWidth;
   }

@@ -10,6 +10,14 @@ import {
   selectedTableFields,
 } from "./fields";
 import { loadTableFonts, writeText, WriteTally } from "./functions/fonts";
+import {
+  addRegenerateButton,
+  describeRegenerateResult,
+  regenerateNodes,
+  REGENERATE_COMMAND,
+  tagPersonScope,
+  tagTextField,
+} from "./functions/regenerate";
 import { setFont, setFontLight } from "./functions/utils";
 
 // Upper limits for one request. The canvas table creates ~2 nodes per cell,
@@ -22,9 +30,16 @@ var generateTableDataWidth = 275;
 var generateTableCellHeight = 26;
 var generateTableHeaderHeight = 16;
 
-//Show UI on figma canvas
-figma.showUI(__html__, { width: 360, height: 620 });
-figma.ui.onmessage = handleMessage;
+if (figma.command === REGENERATE_COMMAND) {
+  // Launched from the "Regenerate data" button in the properties panel: no UI
+  regenerateNodes(figma.currentPage.selection).then((tally) =>
+    figma.closePlugin(describeRegenerateResult(tally))
+  );
+} else {
+  //Show UI on figma canvas
+  figma.showUI(__html__, { width: 360, height: 620 });
+  figma.ui.onmessage = handleMessage;
+}
 
 /** Validates the requested number of users, notifying the user when it is invalid */
 function parseUserCount(value: unknown, max: number): number | null {
@@ -123,7 +138,9 @@ async function fillSelection(fieldKey: unknown, profDomain?: string) {
   for (const node of textNodes) {
     // Each layer is a different user
     const value = new Person({ profDomain }).get(fieldKey);
-    tally.add(await writeText(node, value));
+    const status = await writeText(node, value);
+    tally.add(status);
+    if (status !== "failed") tagTextField(node, fieldKey, profDomain);
   }
 
   const notes = tally.notes();
@@ -205,7 +222,10 @@ function createLabelSection(selection: FieldSelection): {
   return { section: labelSection, height: sectionHeight };
 }
 
-/** Creates a data column for one user (one Person, so its fields are consistent) */
+/**
+ * Creates a data column for one user. The column is tagged as one person,
+ * so "Regenerate data" replaces it with a new, internally consistent user.
+ */
 function createDataSection(
   userIndex: number,
   person: Person,
@@ -216,6 +236,7 @@ function createDataSection(
   dataSection.layoutMode = "VERTICAL";
   dataSection.itemSpacing = 0;
   dataSection.name = `User ${userIndex}`;
+  tagPersonScope(dataSection);
 
   // Add header cell for user column
   dataSection.appendChild(createHeaderCell(`User ${userIndex}`, false));
@@ -227,6 +248,7 @@ function createDataSection(
       formatContentText
     );
     cell.text.name = field.label;
+    tagTextField(cell.text, field.key, person.options.profDomain);
     dataSection.appendChild(cell.frame);
   }
 
@@ -280,6 +302,7 @@ async function generateTable(
   // Finalize table frame dimensions and remove autolayout
   tableFrame.resize(tableFrameWidth, tableFrameHeight);
   tableFrame.layoutMode = "NONE";
+  addRegenerateButton(tableFrame);
 
   // Add table to canvas and set viewport focus
   figma.currentPage.appendChild(tableFrame);

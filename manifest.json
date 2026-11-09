@@ -8,5 +8,12 @@
   "networkAccess": {
     "allowedDomains": ["none"]
   },
-  "documentAccess": "dynamic-page"
+  "documentAccess": "dynamic-page",
+  "relaunchButtons": [
+    {
+      "command": "regenerate",
+      "name": "Regenerate data",
+      "multipleSelection": true
+    }
+  ]
 }

@@ -32,7 +32,7 @@ Status legend: ✅ done · 🚧 in progress · ⏳ not started
 | --- | --- | --- |
 | 1 | Bug fixes | ✅ (Figma QA pending) |
 | 2 | Field registry & code health | 🚧 |
-| 3 | Regenerate & smarter filling | 🚧 |
+| 3 | Regenerate & smarter filling | ✅ (Figma QA pending) |
 | 4 | Data realism | ⏳ |
 | 5 | UI, theming & quick actions | ⏳ |
 
@@ -65,7 +65,7 @@ Status legend: ✅ done · 🚧 in progress · ⏳ not started
 - [x] 3.2 Table columns tagged as one person each
 - [x] 3.3 Fill by layer name
 - [x] 3.4 Fill repeated components (one person per selected instance/frame)
-- [ ] 3.5 "Regenerate selection" button in the plugin UI
+- [x] 3.5 "Regenerate selection" button in the plugin UI
 
 ### Phase 4 checklist: Data realism
 
@@ -247,4 +247,6 @@ Import `manifest.json` via *Plugins → Development → Import plugin from manif
 - [ ] Fill by layer names: select a list frame with several cards, so each card gets a different person
 - [ ] Fill by layer names inside component instances
 - [ ] After fill by layer names, select the card: "Regenerate data" refreshes it as one person
+- [ ] "Regenerate" button in the plugin window does the same as the properties-panel button;
+      with nothing filled selected it says "Nothing to regenerate"
 - [ ] Repeat the fill and table checks in FigJam, Slides and Buzz

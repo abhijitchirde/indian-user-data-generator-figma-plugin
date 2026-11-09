@@ -84,6 +84,12 @@ async function handleMessage(msg) {
     await fillByLayerNames(msg.data?.profDomain);
   }
 
+  if (msg.type === "regenerate-selection") {
+    // Same as the "Regenerate data" button in the properties panel
+    const tally = await regenerateNodes(figma.currentPage.selection);
+    figma.notify(describeRegenerateResult(tally), { timeout: 3000 });
+  }
+
   if (msg.type === "generate-table") {
     const count = parseUserCount(msg.data.noOfUsers, MAX_TABLE_USERS);
     if (count !== null) {

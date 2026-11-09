@@ -230,9 +230,21 @@ main {
   background-color: var(--figma-color-bg-secondary);
 }
 
+.smart-fill-actions {
+  display: flex;
+  gap: var(--figma-space-xs);
+}
+
 .smart-fill-button {
-  flex: none;
-  width: 100%;
+  flex: 1;
+}
+
+/* Two classes so it wins over .button-json's fixed width, defined further down */
+.smart-fill-actions .smart-fill-regenerate {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+  padding: 0 var(--figma-space-sm);
 }
 
 .smart-fill-hint {

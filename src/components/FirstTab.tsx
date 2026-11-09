@@ -1,7 +1,7 @@
 import * as React from "react";
 import DataButton from "./DataButton";
 
-const FirstTab = ({ onClick, onFillByName }) => {
+const FirstTab = ({ onClick, onFillByName, onRegenerate }) => {
   const [selected, setSelected] = React.useState("Random");
   const [openAccordion, setOpenAccordion] = React.useState("Personal Details");
 
@@ -45,12 +45,21 @@ const FirstTab = ({ onClick, onFillByName }) => {
       <div className="tabcontent">
         <div className="tab-container">
           <div className="smart-fill">
-            <button
-              className="button-large smart-fill-button"
-              onClick={() => onFillByName(selected)}
-            >
-              Fill by layer names
-            </button>
+            <div className="smart-fill-actions">
+              <button
+                className="button-large smart-fill-button"
+                onClick={() => onFillByName(selected)}
+              >
+                Fill by layer names
+              </button>
+              <button
+                className="button-large button-json smart-fill-regenerate"
+                onClick={onRegenerate}
+                title="Replace data in selected layers filled by this plugin"
+              >
+                Regenerate
+              </button>
+            </div>
             <p className="smart-fill-hint">
               Select a frame or cards. Text layers named "Email", "Phone",
               "PAN"… get one matching person per card.

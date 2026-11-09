@@ -59,6 +59,10 @@ function App() {
     );
   };
 
+  const onRegenerate = () => {
+    parent.postMessage({ pluginMessage: { type: "regenerate-selection" } }, "*");
+  };
+
   const onGenerate = (inputValue, profDomain) => {
     parent.postMessage(
       {
@@ -115,7 +119,11 @@ function App() {
       <Tabs tabID={getTab} />
 
       {currentTab === "1" ? (
-        <FirstTab onClick={onGenerate} onFillByName={onFillByName} />
+        <FirstTab
+          onClick={onGenerate}
+          onFillByName={onFillByName}
+          onRegenerate={onRegenerate}
+        />
       ) : (
         <SecondTab
           onClick={onCreateTable}

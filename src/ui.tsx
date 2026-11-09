@@ -9,6 +9,35 @@ import { usePrefs } from "./hooks/usePrefs";
 
 declare function require(path: string): any;
 
+/**
+ * Copies text to the clipboard. Figma blocks navigator.clipboard inside plugin windows,
+ * so a hidden textarea + execCommand("copy") comes first; the Clipboard API is the fallback.
+ */
+async function copyText(text: string): Promise<boolean> {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+  let ok = false;
+  try {
+    ok = document.execCommand("copy");
+  } catch {
+    ok = false;
+  }
+  document.body.removeChild(textarea);
+  if (ok) return true;
+
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function App() {
   // Open tab, table fields, user count and domains, remembered between sessions
   const { prefs, update } = usePrefs();
@@ -39,6 +68,11 @@ function App() {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
+      } else if (event.data.pluginMessage?.type === "copy-ready") {
+        const { text, message } = event.data.pluginMessage;
+        copyText(text).then((ok) =>
+          parent.postMessage({ pluginMessage: { type: "copy-done", ok, message } }, "*")
+        );
       }
     };
 
@@ -110,6 +144,18 @@ function App() {
     );
   };
 
+  const onCopy = (format: "json" | "tsv") => (chkData, users, profDomain) => {
+    parent.postMessage(
+      {
+        pluginMessage: {
+          type: format === "json" ? "copy-json" : "copy-tsv",
+          data: { chkData, noOfUsers: +users, profDomain },
+        },
+      },
+      "*"
+    );
+  };
+
   // Saved choices arrive within a few milliseconds; render once they're known
   if (!prefs) return <main />;
 
@@ -130,6 +176,8 @@ function App() {
           onClick={onCreateTable}
           onExportJSON={onExportJSON}
           onExportCSV={onExportCSV}
+          onCopyJSON={onCopy("json")}
+          onCopyTSV={onCopy("tsv")}
           selection={prefs.tableSelection}
           onSelectionChange={(tableSelection) => update({ tableSelection })}
           users={prefs.tableUsers}

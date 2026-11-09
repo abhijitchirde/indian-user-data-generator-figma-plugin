@@ -150,6 +150,21 @@ function escapeCSV(value: string): string {
   return value;
 }
 
+/**
+ * Tab-separated rows with a header: pasting this into Google Sheets or Excel puts every
+ * value in its own cell (CSV text pastes into a single column). Tabs and line breaks
+ * inside values become spaces.
+ */
+export function recordsToTSV(selection: FieldSelection, records: Record<string, string>[]): string {
+  const headers = selectedTableFields(selection).map((field) => field.label);
+  const clean = (value: string) => value.replace(/[\t\r\n]+/g, " ");
+  const lines = [headers.map(clean).join("\t")];
+  for (const record of records) {
+    lines.push(headers.map((header) => clean(record[header] ?? "")).join("\t"));
+  }
+  return lines.join("\n") + "\n";
+}
+
 export function recordsToCSV(selection: FieldSelection, records: Record<string, string>[]): string {
   const headers = selectedTableFields(selection).map((field) => field.label);
   const lines = [headers.map(escapeCSV).join(",")];

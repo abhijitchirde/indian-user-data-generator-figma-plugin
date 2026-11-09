@@ -18,6 +18,8 @@ interface Props {
   onClick: UserSetHandler;
   onExportJSON: UserSetHandler;
   onExportCSV: UserSetHandler;
+  onCopyJSON: UserSetHandler;
+  onCopyTSV: UserSetHandler;
   // Remembered between sessions (owned by App)
   selection: FieldSelection;
   onSelectionChange: (selection: FieldSelection) => void;
@@ -31,6 +33,8 @@ const SecondTab = ({
   onClick,
   onExportJSON,
   onExportCSV,
+  onCopyJSON,
+  onCopyTSV,
   selection,
   onSelectionChange,
   users,
@@ -311,6 +315,27 @@ const SecondTab = ({
                 />
               </svg>
               CSV
+            </button>
+          </div>
+
+          <div className="copy-links">
+            <span>Copy:</span>
+            <button
+              className="copy-link"
+              onClick={() => isAnyCheckboxSelected && onCopyJSON(chkData, usersInput, profDomain)}
+              disabled={!isAnyCheckboxSelected}
+              title="Copy the users as JSON"
+            >
+              JSON
+            </button>
+            <span aria-hidden="true">·</span>
+            <button
+              className="copy-link"
+              onClick={() => isAnyCheckboxSelected && onCopyTSV(chkData, usersInput, profDomain)}
+              disabled={!isAnyCheckboxSelected}
+              title="Copy as rows you can paste into Google Sheets or Excel"
+            >
+              For spreadsheets
             </button>
           </div>
         </div>

@@ -8,6 +8,7 @@ import {
   isFieldKey,
   Person,
   recordsToCSV,
+  recordsToTSV,
   selectedTableFields,
 } from "./fields";
 import { planFillByName } from "./functions/fillByName";
@@ -139,6 +140,36 @@ async function handleMessage(msg) {
         timeout: 2500,
       });
     }
+  }
+
+  // Copy to clipboard: the plugin generates the text, the UI copies it (only the UI
+  // iframe can reach the clipboard) and reports back with "copy-done"
+  if (msg.type === "copy-json" || msg.type === "copy-tsv") {
+    const count = parseUserCount(msg.data.noOfUsers, MAX_EXPORT_USERS);
+    if (count !== null) {
+      const records = generateRecords(msg.data.chkData, count, {
+        profDomain: msg.data.profDomain,
+      });
+      const isJSON = msg.type === "copy-json";
+      figma.ui.postMessage({
+        type: "copy-ready",
+        text: isJSON
+          ? JSON.stringify(records, null, 2)
+          : recordsToTSV(msg.data.chkData, records),
+        message: `Copied ${count} user${count === 1 ? "" : "s"} ${
+          isJSON ? "as JSON" : "for spreadsheets"
+        }`,
+      });
+    }
+  }
+
+  if (msg.type === "copy-done") {
+    figma.notify(
+      msg.ok
+        ? msg.message
+        : "Couldn't copy to the clipboard. Use the JSON or CSV download instead.",
+      { timeout: 2500, error: !msg.ok }
+    );
   }
 
   if (msg.type === "disclaimer") {

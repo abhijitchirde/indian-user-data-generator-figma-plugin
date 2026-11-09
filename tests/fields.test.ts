@@ -7,6 +7,7 @@ import {
   generateRecords,
   Person,
   recordsToCSV,
+  recordsToTSV,
   selectedTableFields,
 } from "../src/fields";
 import { generateEmail, generatePAN, generateUPIn } from "../src/functions/generators";
@@ -209,6 +210,26 @@ describe("table, JSON and CSV output", () => {
     for (const [i, record] of records.entries()) {
       expect(lines[i + 1]).toContain(`"${record["Urban Address"]}"`);
     }
+  });
+
+  test("spreadsheet copy is tab-separated, one row per user, addresses unquoted", () => {
+    const records = generateRecords(selection, 3);
+    const lines = recordsToTSV(selection, records).trimEnd().split("\n");
+    expect(lines[0]).toBe("Full Name\tEmail\tUrban Address\tPIN Code");
+    expect(lines).toHaveLength(4);
+    for (const [i, record] of records.entries()) {
+      expect(lines[i + 1].split("\t")).toEqual([
+        record["Full Name"],
+        record["Email"],
+        record["Urban Address"],
+        record["PIN Code"],
+      ]);
+    }
+  });
+
+  test("tabs and line breaks inside values don't break spreadsheet rows", () => {
+    const tsv = recordsToTSV({ FullNameValue: true }, [{ "Full Name": "A\tB\nC" }]);
+    expect(tsv).toBe("Full Name\nA B C\n");
   });
 
   test("CSV escapes double quotes", () => {

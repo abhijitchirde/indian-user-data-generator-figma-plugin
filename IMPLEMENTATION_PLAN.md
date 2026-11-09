@@ -83,7 +83,7 @@ Deferred: Abhijit chose to do Phase 5 first.
 
 - [x] 5.1 `themeColors: true` and Figma's theme; footer and theme button from the other plugins
 - [x] 5.2 Persist UI choices with `figma.clientStorage` (theme, open tab, table fields, user count, both profession domains)
-- [ ] 5.3 Copy-to-clipboard next to JSON/CSV download
+- [x] 5.3 Copy-to-clipboard next to JSON/CSV download
 - [ ] 5.4 Quick actions via manifest `parameters`
 - [ ] 5.5 Seeded randomness
 - [ ] 5.6 Auto-layout canvas table, "rows = users" layout, native FigJam table
@@ -241,7 +241,14 @@ at 360×620 with headless Edge. The window was then raised to 360×700, so the t
   render once the reply arrives, or after 500ms with defaults outside Figma. `Tabs`,
   `FirstTab` and `SecondTab` are now controlled by `App`. This also fixes the table tab losing
   its ticks when switching tabs (it used to unmount and reset).
-- **5.3** `navigator.clipboard` is blocked in plugin iframes, so use a hidden `<textarea>` + `document.execCommand("copy")`.
+- **5.3** "Copy: JSON · For spreadsheets" text links under the export buttons, to keep the
+  bar to three buttons. "For spreadsheets" is tab-separated (`recordsToTSV`), so pasting into
+  Google Sheets or Excel fills one cell per value (CSV text would paste into one column). Tabs
+  and line breaks inside values become spaces. The plugin generates the text (`copy-json` /
+  `copy-tsv` → `copy-ready`), and the UI copies it with a hidden `<textarea>` +
+  `execCommand("copy")`, because `navigator.clipboard` is blocked in plugin iframes. The
+  Clipboard API is the fallback. The UI then reports `copy-done`, and the plugin shows "Copied 25
+  users for spreadsheets" or an error pointing to the downloads. Same 10,000-user limit as exports.
 - **5.4** Manifest `parameters` with suggestions from the registry. Handle `figma.on("run", ...)`.
 - **5.5** Small seeded PRNG (mulberry32) replacing `Math.random` behind a `rng()` helper. Optional seed input.
 - **5.6** Table built with auto layout (hug height, fixed column width, wrapped text). Option for
@@ -296,4 +303,7 @@ Import `manifest.json` via *Plugins → Development → Import plugin from manif
 - [ ] Theme choice is remembered after closing and reopening the plugin
 - [ ] Reopen the plugin: same tab, same table ticks, user count and profession domains as last time
 - [ ] Table tab: tick fields, switch to the first tab and back, and the ticks are still there
+- [ ] "Copy: JSON" puts formatted JSON on the clipboard, with a "Copied N users as JSON" toast
+- [ ] "Copy: For spreadsheets" pastes into Google Sheets / Excel with one value per cell
+      (addresses with commas stay in one cell)
 - [ ] Repeat the fill and table checks in FigJam, Slides and Buzz

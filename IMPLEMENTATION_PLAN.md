@@ -36,7 +36,8 @@ Status legend: ✅ done · 🚧 in progress · ⏳ not started
 | 2 | Field registry & code health | 🚧 |
 | 3 | Regenerate & smarter filling | ✅ (Figma QA pending) |
 | 4 | Data realism | ⏸️ deferred (Phase 5 first) |
-| 5 | UI, theming & quick actions | 🚧 |
+| 5 | UI, theming & quick actions | ✅ (Figma QA pending; 5.5 dropped) |
+| C | Community page assets | ✅ (icon choice pending) |
 
 ### Phase 1 checklist: Bug fixes
 
@@ -88,6 +89,15 @@ Deferred: Abhijit chose to do Phase 5 first.
 - [ ] ~~5.5 Seeded randomness~~ (dropped: built, then removed at Abhijit's request)
 - [x] 5.7 New tables go in the middle of the current view, beside existing layers (not at 0,0)
 - [x] 5.6 Auto-layout canvas table, "rows = users" layout, native FigJam table
+
+### Community page assets
+
+- [x] C.1 Four icon options (`community/exports/icons`), overview sheet at 64/32/16 px
+- [x] C.2 Cover (1920×960) with icon option 1 and the real plugin UI
+- [x] C.3 Four carousel slides (1920×1080) with real generated users
+- [ ] C.4 Pick the icon (option 1 assumed), then upload icon, cover, slides and text to Figma Community
+
+See [community/README.md](community/README.md).
 
 ---
 

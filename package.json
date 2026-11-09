@@ -7,7 +7,9 @@
     "test": "jest",
     "typecheck": "tsc --noEmit -p .",
     "dev": "webpack --mode=development --watch",
-    "build": "webpack --mode=production"
+    "build": "webpack --mode=production",
+    "community": "node community/render.mjs",
+    "community:samples": "node community/make-samples.mjs"
   },
   "jest": {
     "testEnvironment": "node",

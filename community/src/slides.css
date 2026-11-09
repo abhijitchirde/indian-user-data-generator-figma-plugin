@@ -52,6 +52,7 @@
   position: absolute;
   left: 130px;
   bottom: 96px;
+  max-width: 1660px;
   font: 500 30px/1.4 var(--sans);
   color: var(--ink-3);
 }

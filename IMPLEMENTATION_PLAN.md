@@ -55,7 +55,7 @@ Status legend: ✅ done · 🚧 in progress · ⏳ not started
 - [x] 2.2 `Person` class: lazy, cached, internally consistent fields
 - [x] 2.3 Table / JSON / CSV generated from the registry
 - [x] 2.4 Unit tests in `tests/` (Jest + ts-jest, 36 tests; Vitest's native binary is blocked by Windows Application Control on this machine)
-- [ ] 2.5 UI buttons and checkboxes rendered from the registry
+- [x] 2.5 UI buttons and checkboxes rendered from the registry
 - [ ] 2.6 Restructure state metadata in `dataSet.ts`
 - [ ] 2.7 `strict` TypeScript + typed `PluginMessage` union
 
@@ -155,7 +155,16 @@ before `.js`, because old ignored `tsc` outputs (`src/**/*.js`) still sit next t
 over many iterations, plus consistency checks (email has no spaces, PAN 5th char = surname initial,
 DL year ≥ DoB year + 18, address contains the person's city/state/PIN). Run with `npm test`.
 
-**2.5–2.7** are follow-ups. They are mechanical refactors once the registry exists.
+**2.5 UI from the registry.** Both tabs map over `GROUPS` and `fieldsInGroup()` from
+`fieldMeta.ts` (labels via `shortLabel`). The table presets come from
+`tableSelection("default" | "all" | "none")` (`defaultInTable` per field). Shared pieces:
+`Accordion` (now keyboard-accessible: `role="button"`, Enter/Space, `aria-expanded`) and
+`ProfessionSelect` (one list of domains, `PROFESSION_DOMAINS`). The table tab's profession
+dropdown is now controlled, so "Default" also resets the dropdown, not just the state. Tests pin
+the default ticks and button order to the previous layout. The UI bundle does not include the
+dataset (only `fieldMeta.ts`). FirstTab 407 → 126 lines, SecondTab 784 → 309.
+
+**2.6–2.7** are follow-ups. They are mechanical refactors once the registry exists.
 
 ### Phase 3: Regenerate & smarter filling
 
@@ -249,4 +258,7 @@ Import `manifest.json` via *Plugins → Development → Import plugin from manif
 - [ ] After fill by layer names, select the card: "Regenerate data" refreshes it as one person
 - [ ] "Regenerate" button in the plugin window does the same as the properties-panel button;
       with nothing filled selected it says "Nothing to regenerate"
+- [ ] Both tabs look and behave as before (same buttons, checkboxes, order, counts)
+- [ ] Table tab: change the profession domain, then click "Default": dropdown shows "Random" again
+- [ ] Accordions open/close with Tab + Enter/Space
 - [ ] Repeat the fill and table checks in FigJam, Slides and Buzz

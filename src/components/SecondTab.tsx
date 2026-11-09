@@ -1,43 +1,26 @@
 import * as React from "react";
+import {
+  FieldGroup,
+  FieldSelection,
+  fieldsInGroup,
+  GROUPS,
+  selectionKey,
+  tableSelection,
+} from "../fieldMeta";
+import Accordion from "./Accordion";
 import DataCheckbox from "./DataCheckbox";
 import ProfessionSelectionForTable from "./ProfessionSelectionForTable";
 
 const SecondTab = ({ onClick, onExportJSON, onExportCSV }) => {
-  const [chkData, setChkData] = React.useState({
-    FirstNameValue: false,
-    LastNameValue: false,
-    FullNameValue: true,
-    DoBValue: true,
-    EmailValue: true,
-    MobileValue: true,
-    ProfValue: true,
-    RurAddressValue: false,
-    UrbAddressValue: true,
-    CityValue: true,
-    StateValue: true,
-    PINValue: true,
-    PassValue: false,
-    UIDValue: true,
-    PANValue: true,
-    UPInValue: false,
-    UPImValue: false,
-    DLValue: false,
-    RCValue: false,
-    RCBHValue: false,
-    VoterValue: false,
-    CINValue: false,
-    GSTINValue: true,
-    DINValue: false,
-    LLPINValue: false,
-    PANiValue: false,
-    TANValue: false,
-  });
+  const [chkData, setChkData] = React.useState<FieldSelection>(() =>
+    tableSelection("default")
+  );
 
-  const [usersInput, setUsersInput] = React.useState(1);
+  const [usersInput, setUsersInput] = React.useState<number | string>(1);
 
   const [profDomain, setProfDomain] = React.useState("Random");
 
-  const [openAccordion, setOpenAccordion] = React.useState("Personal details");
+  const [openGroup, setOpenGroup] = React.useState<FieldGroup | null>("personal");
 
   const inputChangeHandler = (e) => {
     setUsersInput(e.target.value);
@@ -58,15 +41,14 @@ const SecondTab = ({ onClick, onExportJSON, onExportCSV }) => {
     });
   };
 
-  const updateDomain = (domain) => {
-    setProfDomain(domain);
+  const setProfessionChecked = (checked: boolean) => {
+    setChkData((prev) => ({ ...prev, ProfValue: checked }));
   };
 
-  const isDomain = (value) => {
-    setChkData((prev) => {
-      return { ...prev, ["ProfValue"]: value };
-    });
-  };
+  const isAnyCheckboxSelected = React.useMemo(
+    () => Object.values(chkData).some(Boolean),
+    [chkData]
+  );
 
   const clickHandler = () => {
     if (isAnyCheckboxSelected) {
@@ -86,102 +68,14 @@ const SecondTab = ({ onClick, onExportJSON, onExportCSV }) => {
     }
   };
 
-  const resetSelections = () => {
-    setChkData({
-      FirstNameValue: false,
-      LastNameValue: false,
-      FullNameValue: false,
-      DoBValue: false,
-      EmailValue: false,
-      MobileValue: false,
-      ProfValue: false,
-      RurAddressValue: false,
-      UrbAddressValue: false,
-      CityValue: false,
-      StateValue: false,
-      PINValue: false,
-      PassValue: false,
-      UIDValue: false,
-      PANValue: false,
-      UPInValue: false,
-      UPImValue: false,
-      DLValue: false,
-      RCValue: false,
-      RCBHValue: false,
-      VoterValue: false,
-      CINValue: false,
-      GSTINValue: false,
-      DINValue: false,
-      LLPINValue: false,
-      PANiValue: false,
-      TANValue: false,
-    });
-  };
+  const resetSelections = () => setChkData(tableSelection("none"));
+
+  const selectAll = () => setChkData(tableSelection("all"));
 
   const resetToDefault = () => {
-    setChkData({
-      FirstNameValue: false,
-      LastNameValue: false,
-      FullNameValue: true,
-      DoBValue: true,
-      EmailValue: true,
-      MobileValue: true,
-      ProfValue: true,
-      RurAddressValue: false,
-      UrbAddressValue: true,
-      CityValue: true,
-      StateValue: true,
-      PINValue: true,
-      PassValue: false,
-      UIDValue: true,
-      PANValue: true,
-      UPInValue: false,
-      UPImValue: false,
-      DLValue: false,
-      RCValue: false,
-      RCBHValue: false,
-      VoterValue: false,
-      CINValue: false,
-      GSTINValue: true,
-      DINValue: false,
-      LLPINValue: false,
-      PANiValue: false,
-      TANValue: false,
-    });
+    setChkData(tableSelection("default"));
     setProfDomain("Random");
     setUsersInput(1);
-  };
-
-  const selectAll = () => {
-    setChkData({
-      FirstNameValue: true,
-      LastNameValue: true,
-      FullNameValue: true,
-      DoBValue: true,
-      EmailValue: true,
-      MobileValue: true,
-      ProfValue: true,
-      RurAddressValue: true,
-      UrbAddressValue: true,
-      CityValue: true,
-      StateValue: true,
-      PINValue: true,
-      PassValue: true,
-      UIDValue: true,
-      PANValue: true,
-      UPInValue: true,
-      UPImValue: true,
-      DLValue: true,
-      RCValue: true,
-      RCBHValue: true,
-      VoterValue: true,
-      CINValue: true,
-      GSTINValue: true,
-      DINValue: true,
-      LLPINValue: true,
-      PANiValue: true,
-      TANValue: true,
-    });
   };
 
   const updateCheckbox = (e) => {
@@ -191,115 +85,13 @@ const SecondTab = ({ onClick, onExportJSON, onExportCSV }) => {
     });
   };
 
-  const toggleAccordion = (accordionName) => {
-    setOpenAccordion(openAccordion === accordionName ? null : accordionName);
+  const toggleGroup = (group: FieldGroup) => {
+    setOpenGroup(openGroup === group ? null : group);
   };
 
-  const countSelected = (keys) => {
-    return keys.filter((key) => chkData[key]).length;
-  };
-
-  const isAnyCheckboxSelected = React.useMemo(() => {
-    const allKeys = [
-      "FirstNameValue",
-      "LastNameValue",
-      "FullNameValue",
-      "DoBValue",
-      "EmailValue",
-      "MobileValue",
-      "ProfValue",
-      "RurAddressValue",
-      "UrbAddressValue",
-      "CityValue",
-      "StateValue",
-      "PINValue",
-      "PassValue",
-      "UIDValue",
-      "PANValue",
-      "UPInValue",
-      "UPImValue",
-      "DLValue",
-      "RCValue",
-      "RCBHValue",
-      "VoterValue",
-      "CINValue",
-      "GSTINValue",
-      "DINValue",
-      "LLPINValue",
-      "PANiValue",
-      "TANValue",
-    ];
-    return countSelected(allKeys) > 0;
-  }, [chkData]);
-
-  const getSectionCount = (sectionName) => {
-    switch (sectionName) {
-      case "Personal details":
-        return countSelected([
-          "FirstNameValue",
-          "LastNameValue",
-          "FullNameValue",
-          "DoBValue",
-          "EmailValue",
-          "MobileValue",
-        ]);
-      case "Profession":
-        return countSelected(["ProfValue"]);
-      case "Location":
-        return countSelected([
-          "RurAddressValue",
-          "UrbAddressValue",
-          "CityValue",
-          "StateValue",
-          "PINValue",
-        ]);
-      case "Personal IDs":
-        return countSelected([
-          "PassValue",
-          "UIDValue",
-          "PANValue",
-          "UPInValue",
-          "UPImValue",
-          "VoterValue",
-          "DLValue",
-          "RCValue",
-          "RCBHValue",
-        ]);
-      case "Business IDs":
-        return countSelected([
-          "PANiValue",
-          "GSTINValue",
-          "CINValue",
-          "DINValue",
-          "LLPINValue",
-          "TANValue",
-        ]);
-      default:
-        return 0;
-    }
-  };
-
-  const ChevronIcon = ({ isOpen }) => (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      style={{
-        transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
-        transition: "transform 0.2s ease",
-      }}
-    >
-      <path
-        d="M3 4.5L6 7.5L9 4.5"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+  const selectedInGroup = (group: FieldGroup) =>
+    fieldsInGroup(group, true).filter((field) => chkData[selectionKey(field.key)])
+      .length;
 
   return (
     <>
@@ -338,308 +130,38 @@ const SecondTab = ({ onClick, onExportJSON, onExportCSV }) => {
             </a>
           </div>
           <div className="checkboxes-list scrollable-content">
-            <div className="checkbox-group accordion">
-              <div
-                className="accordion-header"
-                onClick={() => toggleAccordion("Personal details")}
+            {GROUPS.map((group) => (
+              <Accordion
+                key={group.id}
+                groupClass="checkbox-group"
+                title={group.label}
+                isOpen={openGroup === group.id}
+                onToggle={() => toggleGroup(group.id)}
+                selectedCount={selectedInGroup(group.id)}
               >
-                <p className="group-label">Personal Details</p>
-                <div className="accordion-right">
-                  <p className="selection-count">
-                    {getSectionCount("Personal details")} selected
-                  </p>
-                  <span className="accordion-chevron">
-                    <ChevronIcon
-                      isOpen={openAccordion === "Personal details"}
-                    />
-                  </span>
-                </div>
-              </div>
-              {openAccordion === "Personal details" && (
-                <div className="accordion-content">
-                  <div className="checkboxes">
-                    <DataCheckbox
-                      name="FirstNameChk"
-                      label="First Name"
-                      checked={chkData.FirstNameValue}
-                      id="FirstNameValue"
-                      onChange={updateCheckbox}
-                    />
-                    <DataCheckbox
-                      name="LastNameChk"
-                      label="Last Name"
-                      checked={chkData.LastNameValue}
-                      id="LastNameValue"
-                      onChange={updateCheckbox}
-                    />
-                    <DataCheckbox
-                      name="FullNameChk"
-                      label="Full Name"
-                      checked={chkData.FullNameValue}
-                      id="FullNameValue"
-                      onChange={updateCheckbox}
-                    />
-                    <DataCheckbox
-                      name="DoBChk"
-                      label="Birth Date"
-                      checked={chkData.DoBValue}
-                      id="DoBValue"
-                      onChange={updateCheckbox}
-                    />
-                    <DataCheckbox
-                      name="EmailChk"
-                      label="Email"
-                      checked={chkData.EmailValue}
-                      id="EmailValue"
-                      onChange={updateCheckbox}
-                    />
-                    <DataCheckbox
-                      name="MobileChk"
-                      label="Mobile"
-                      checked={chkData.MobileValue}
-                      id="MobileValue"
-                      onChange={updateCheckbox}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="checkbox-group accordion">
-              <div
-                className="accordion-header"
-                onClick={() => toggleAccordion("Profession")}
-              >
-                <p className="group-label">Profession</p>
-                <div className="accordion-right">
-                  <p className="selection-count">
-                    {getSectionCount("Profession")} selected
-                  </p>
-                  <span className="accordion-chevron">
-                    <ChevronIcon isOpen={openAccordion === "Profession"} />
-                  </span>
-                </div>
-              </div>
-              {openAccordion === "Profession" && (
-                <div className="accordion-content">
-                  <div className="checkboxes">
+                <div className="checkboxes">
+                  {group.id === "profession" ? (
                     <ProfessionSelectionForTable
-                      getDomain={updateDomain}
-                      isDomain={isDomain}
-                      checked={chkData.ProfValue}
+                      checked={chkData.ProfValue === true}
+                      onCheckedChange={setProfessionChecked}
+                      domain={profDomain}
+                      onDomainChange={setProfDomain}
                     />
-                  </div>
+                  ) : (
+                    fieldsInGroup(group.id, true).map((field) => (
+                      <DataCheckbox
+                        key={field.key}
+                        name={`${field.key}Chk`}
+                        label={field.shortLabel}
+                        checked={chkData[selectionKey(field.key)] === true}
+                        id={selectionKey(field.key)}
+                        onChange={updateCheckbox}
+                      />
+                    ))
+                  )}
                 </div>
-              )}
-            </div>
-
-            <div className="checkbox-group accordion">
-              <div
-                className="accordion-header"
-                onClick={() => toggleAccordion("Location")}
-              >
-                <p className="group-label">Location</p>
-                <div className="accordion-right">
-                  <p className="selection-count">
-                    {getSectionCount("Location")} selected
-                  </p>
-                  <span className="accordion-chevron">
-                    <ChevronIcon isOpen={openAccordion === "Location"} />
-                  </span>
-                </div>
-              </div>
-              {openAccordion === "Location" && (
-                <div className="accordion-content">
-                  <div className="checkboxes">
-                    <DataCheckbox
-                      name="RurAddressChk"
-                      label="Rural Addr."
-                      checked={chkData.RurAddressValue}
-                      id="RurAddressValue"
-                      onChange={updateCheckbox}
-                    />
-                    <DataCheckbox
-                      name="UrbAddressChk"
-                      label="City Addr."
-                      checked={chkData.UrbAddressValue}
-                      id="UrbAddressValue"
-                      onChange={updateCheckbox}
-                    />
-                    <DataCheckbox
-                      name="CityChk"
-                      label="City"
-                      checked={chkData.CityValue}
-                      id="CityValue"
-                      onChange={updateCheckbox}
-                    />
-                    <DataCheckbox
-                      name="StateChk"
-                      label="State"
-                      checked={chkData.StateValue}
-                      id="StateValue"
-                      onChange={updateCheckbox}
-                    />
-                    <DataCheckbox
-                      name="PINChk"
-                      label="Post Code"
-                      checked={chkData.PINValue}
-                      id="PINValue"
-                      onChange={updateCheckbox}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="checkbox-group accordion">
-              <div
-                className="accordion-header"
-                onClick={() => toggleAccordion("Personal IDs")}
-              >
-                <p className="group-label">Personal IDs</p>
-                <div className="accordion-right">
-                  <p className="selection-count">
-                    {getSectionCount("Personal IDs")} selected
-                  </p>
-                  <span className="accordion-chevron">
-                    <ChevronIcon isOpen={openAccordion === "Personal IDs"} />
-                  </span>
-                </div>
-              </div>
-              {openAccordion === "Personal IDs" && (
-                <div className="accordion-content">
-                  <div className="checkboxes">
-                    <DataCheckbox
-                      name="PassChk"
-                      label="Passport"
-                      checked={chkData.PassValue}
-                      id="PassValue"
-                      onChange={updateCheckbox}
-                    />
-                    <DataCheckbox
-                      name="UIDChk"
-                      label="Aadhar"
-                      checked={chkData.UIDValue}
-                      id="UIDValue"
-                      onChange={updateCheckbox}
-                    />
-                    <DataCheckbox
-                      name="PANChk"
-                      label="PAN"
-                      checked={chkData.PANValue}
-                      id="PANValue"
-                      onChange={updateCheckbox}
-                    />
-                    <DataCheckbox
-                      name="UPInChk"
-                      label="UPI (name)"
-                      checked={chkData.UPInValue}
-                      id="UPInValue"
-                      onChange={updateCheckbox}
-                    />
-                    <DataCheckbox
-                      name="UPImChk"
-                      label="UPI (mob)"
-                      checked={chkData.UPImValue}
-                      id="UPImValue"
-                      onChange={updateCheckbox}
-                    />
-                    <DataCheckbox
-                      name="VoterChk"
-                      label="Voter ID"
-                      checked={chkData.VoterValue}
-                      id="VoterValue"
-                      onChange={updateCheckbox}
-                    />
-                    <DataCheckbox
-                      name="DLChk"
-                      label="DL"
-                      checked={chkData.DLValue}
-                      id="DLValue"
-                      onChange={updateCheckbox}
-                    />
-                    <DataCheckbox
-                      name="RCChk"
-                      label="Vehicle RC"
-                      checked={chkData.RCValue}
-                      id="RCValue"
-                      onChange={updateCheckbox}
-                    />
-                    <DataCheckbox
-                      name="RCBHChk"
-                      label="RC (BH)"
-                      checked={chkData.RCBHValue}
-                      id="RCBHValue"
-                      onChange={updateCheckbox}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="checkbox-group accordion">
-              <div
-                className="accordion-header"
-                onClick={() => toggleAccordion("Business IDs")}
-              >
-                <p className="group-label">Business IDs</p>
-                <div className="accordion-right">
-                  <p className="selection-count">
-                    {getSectionCount("Business IDs")} selected
-                  </p>
-                  <span className="accordion-chevron">
-                    <ChevronIcon isOpen={openAccordion === "Business IDs"} />
-                  </span>
-                </div>
-              </div>
-              {openAccordion === "Business IDs" && (
-                <div className="accordion-content">
-                  <div className="checkboxes">
-                    <DataCheckbox
-                      name="PANi"
-                      label="PAN (Corp)"
-                      checked={chkData.PANiValue}
-                      id="PANiValue"
-                      onChange={updateCheckbox}
-                    />
-                    <DataCheckbox
-                      name="GSTINChk"
-                      label="GSTIN"
-                      checked={chkData.GSTINValue}
-                      id="GSTINValue"
-                      onChange={updateCheckbox}
-                    />
-                    <DataCheckbox
-                      name="CINChk"
-                      label="CIN"
-                      checked={chkData.CINValue}
-                      id="CINValue"
-                      onChange={updateCheckbox}
-                    />
-                    <DataCheckbox
-                      name="DINChk"
-                      label="DIN"
-                      checked={chkData.DINValue}
-                      id="DINValue"
-                      onChange={updateCheckbox}
-                    />
-                    <DataCheckbox
-                      name="LLPINChk"
-                      label="LLPIN"
-                      checked={chkData.LLPINValue}
-                      id="LLPINValue"
-                      onChange={updateCheckbox}
-                    />
-                    <DataCheckbox
-                      name="TAN"
-                      label="TAN"
-                      checked={chkData.TANValue}
-                      id="TANValue"
-                      onChange={updateCheckbox}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
+              </Accordion>
+            ))}
           </div>
         </div>
       </div>

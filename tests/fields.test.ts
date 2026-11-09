@@ -111,7 +111,8 @@ describe("one person is internally consistent", () => {
       const last = person.get("LastName");
       expect(person.get("FullName")).toBe(`${first} ${last}`);
       expect(person.get("PAN")[4]).toBe(last[0].toUpperCase());
-      expect(person.get("UPIn").startsWith(`${first}${last}`.replace(/\s+/g, "").toLowerCase())).toBe(true);
+      const compactName = `${first}${last}`.replace(/[^A-Za-z0-9]/g, "").toLowerCase();
+      expect(person.get("UPIn").startsWith(compactName)).toBe(true);
       expect(person.get("UPIm").startsWith(person.get("Mobile"))).toBe(true);
     }
   });

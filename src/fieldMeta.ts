@@ -47,6 +47,24 @@ export const GROUPS: { id: FieldGroup; label: string }[] = [
   { id: "businessIds", label: "Business IDs" },
 ];
 
+/** Profession domains; values are dataset keys in dataSet.ts ("Random" picks a domain) */
+export const PROFESSION_DOMAINS: { value: string; label: string }[] = [
+  { value: "Random", label: "Random" },
+  { value: "Tech and IT", label: "Tech and IT" },
+  { value: "Engineering", label: "Engineering" },
+  { value: "Management", label: "Management" },
+  { value: "Healthcare", label: "Healthcare" },
+  { value: "Finance", label: "Finance" },
+  { value: "Science", label: "Science" },
+  { value: "Education", label: "Education" },
+  { value: "Art and media", label: "Art and media" },
+  { value: "Hospitality", label: "Hospitality" },
+  { value: "Construction", label: "Construction" },
+  { value: "Govt and administration", label: "Govt and administration" },
+  { value: "Volunteering", label: "Volunteering" },
+  { value: "Other", label: "Others" },
+];
+
 export interface FieldMeta {
   key: FieldKey;
   /** Label used in the canvas table, JSON keys and CSV headers */
@@ -168,6 +186,11 @@ export const FIELD_META: FieldMeta[] = [
 export const FIELD_META_BY_KEY = Object.fromEntries(
   FIELD_META.map((field) => [field.key, field])
 ) as Record<FieldKey, FieldMeta>;
+
+/** Fields of one group, in display order; tableOnly skips button-only fields */
+export function fieldsInGroup(group: FieldGroup, tableOnly = false): FieldMeta[] {
+  return FIELD_META.filter((f) => f.group === group && (!tableOnly || f.inTable));
+}
 
 export function isFieldKey(value: unknown): value is FieldKey {
   return typeof value === "string" && value in FIELD_META_BY_KEY;

@@ -38,6 +38,12 @@ The plugin follows your Figma app's **light or dark theme** automatically, or yo
 2. Choose the data type you want from the "Add to text layers" tab
 3. Your selected text layers are instantly filled with realistic Indian data
 
+**Use it without opening the plugin (quick actions):**
+
+1. Select text layers (or a card)
+2. Press Ctrl + / (Cmd + / on Mac), type "Indian User Data" and pick it
+3. Type a data type, for example "email", "aadhaar" or "address", or choose "Fill by layer names" or "Regenerate selected data"
+
 **Get new data without starting over:**
 
 - Select layers, cards or tables the plugin filled before and click "Regenerate selected data", or use the "Regenerate data" button that appears in Figma's right panel when you select them
@@ -85,6 +91,7 @@ The plugin follows your Figma app's **light or dark theme** automatically, or yo
 - **Preserves your design** - Keeps fonts and styling from your target text layers, including mixed styles; if a font is missing, Inter is used at the closest weight
 - **Flexible user sets** - Any combination of fields, as a table on the canvas, as JSON/CSV downloads, or copied for spreadsheets
 - **Theme-aware interface** - Follows Figma's light or dark theme, or choose one yourself
+- **Quick actions** - Fill or regenerate from Figma's command bar (Ctrl/Cmd + /) without opening the plugin
 - **Remembers your setup** - The open tab, ticked fields, number of users, profession domains and theme are kept for next time
 
 ---

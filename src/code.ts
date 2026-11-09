@@ -4,6 +4,7 @@
 import {
   fieldForLayerName,
   FieldSelection,
+  FIELDS_BY_KEY,
   generateRecords,
   isFieldKey,
   Person,
@@ -23,6 +24,12 @@ import {
   tagTextField,
 } from "./functions/regenerate";
 import { setFont, setFontLight } from "./functions/utils";
+import {
+  ACTION_FILL_BY_NAME,
+  ACTION_REGENERATE,
+  QUICK_ACTION_KEY,
+  quickActionSuggestions,
+} from "./quickActions";
 
 // Upper limits for one request. The canvas table creates ~2 nodes per cell,
 // so it is capped much lower than the file exports.
@@ -37,17 +44,43 @@ var generateTableDataWidth = 275;
 var generateTableCellHeight = 26;
 var generateTableHeaderHeight = 16;
 
-if (figma.command === REGENERATE_COMMAND) {
-  // Launched from the "Regenerate data" button in the properties panel: no UI
-  regenerateNodes(figma.currentPage.selection).then((tally) =>
-    figma.closePlugin(describeRegenerateResult(tally))
-  );
-} else {
-  //Show UI on figma canvas
-  // 700 fits the tallest group (Personal IDs) open in both tabs without scrolling.
-  // themeColors adds a figma-light / figma-dark class to the UI's <html> (used by ui.css).
-  figma.showUI(__html__, { width: 360, height: 700, themeColors: true });
-  figma.ui.onmessage = handleMessage;
+/** What to tell the user after an action. quiet: no toast needed inside the plugin window */
+interface Outcome {
+  message: string;
+  quiet?: boolean;
+}
+
+// Quick actions (Ctrl/Cmd + /): suggestions while the user types the data type
+figma.parameters.on("input", ({ query, result }) => {
+  result.setSuggestions(quickActionSuggestions(query));
+});
+
+// Every launch: properties-panel "Regenerate data" button, a quick action, or the plugin window
+figma.on("run", async ({ command, parameters }) => {
+  if (command === REGENERATE_COMMAND) {
+    const tally = await regenerateNodes(figma.currentPage.selection);
+    figma.closePlugin(describeRegenerateResult(tally));
+  } else if (parameters?.[QUICK_ACTION_KEY]) {
+    const outcome = await runQuickAction(parameters[QUICK_ACTION_KEY]);
+    figma.closePlugin(outcome.message);
+  } else {
+    // 700 fits the tallest group (Personal IDs) open in both tabs without scrolling.
+    // themeColors adds a figma-light / figma-dark class to the UI's <html> (used by ui.css).
+    figma.showUI(__html__, { width: 360, height: 700, themeColors: true });
+    figma.ui.onmessage = handleMessage;
+  }
+});
+
+async function runQuickAction(dataType: string): Promise<Outcome> {
+  if (dataType === ACTION_FILL_BY_NAME) return fillByLayerNames();
+  if (dataType === ACTION_REGENERATE) {
+    return { message: describeRegenerateResult(await regenerateNodes(figma.currentPage.selection)) };
+  }
+  return fillSelection(dataType);
+}
+
+function notifyOutcome(outcome: Outcome) {
+  if (!outcome.quiet) figma.notify(outcome.message, { timeout: 4000 });
 }
 
 /** Validates the requested number of users, notifying the user when it is invalid */
@@ -93,11 +126,11 @@ async function handleMessage(msg) {
   }
 
   if (msg.type === "generate-random") {
-    await fillSelection(msg.data.inputValue, msg.data.profDomain);
+    notifyOutcome(await fillSelection(msg.data.inputValue, msg.data.profDomain));
   }
 
   if (msg.type === "fill-by-name") {
-    await fillByLayerNames(msg.data?.profDomain);
+    notifyOutcome(await fillByLayerNames(msg.data?.profDomain));
   }
 
   if (msg.type === "regenerate-selection") {
@@ -181,15 +214,14 @@ async function handleMessage(msg) {
 }
 
 /** Fills every selected text layer with a new value of the requested field */
-async function fillSelection(fieldKey: unknown, profDomain?: string) {
-  if (!isFieldKey(fieldKey)) return;
+async function fillSelection(fieldKey: unknown, profDomain?: string): Promise<Outcome> {
+  if (!isFieldKey(fieldKey)) return { message: "Unknown data type" };
 
   const textNodes = figma.currentPage.selection.filter(
     (node): node is TextNode => node.type === "TEXT"
   );
   if (textNodes.length === 0) {
-    figma.notify("Please select text layers to add data", { timeout: 1500 });
-    return;
+    return { message: "Please select text layers to add data" };
   }
 
   const tally = new WriteTally();
@@ -201,8 +233,13 @@ async function fillSelection(fieldKey: unknown, profDomain?: string) {
     if (status !== "failed") tagTextField(node, fieldKey, profDomain);
   }
 
+  // Inside the plugin window the filled layers speak for themselves; only notes get a toast
   const notes = tally.notes();
-  if (notes) figma.notify(notes.trim(), { timeout: 4000 });
+  const n = tally.updated;
+  return {
+    message: `Filled ${n} layer${n === 1 ? "" : "s"} with ${FIELDS_BY_KEY[fieldKey].label}.${notes}`,
+    quiet: !notes,
+  };
 }
 
 /**
@@ -210,22 +247,18 @@ async function fillSelection(fieldKey: unknown, profDomain?: string) {
  * Each selected frame/card is one person; containers holding several cards
  * are split so every card gets its own person (see fillByName.ts).
  */
-async function fillByLayerNames(profDomain?: string) {
+async function fillByLayerNames(profDomain?: string): Promise<Outcome> {
   const selection = figma.currentPage.selection;
   if (selection.length === 0) {
-    figma.notify("Select frames, cards or text layers to fill", {
-      timeout: 2000,
-    });
-    return;
+    return { message: "Select frames, cards or text layers to fill" };
   }
 
   const groups = planFillByName(selection, fieldForLayerName);
   if (groups.length === 0) {
-    figma.notify(
-      'No text layers with matching names. Rename layers to e.g. "Email", "Phone" or "PAN".',
-      { timeout: 4000 }
-    );
-    return;
+    return {
+      message:
+        'No text layers with matching names. Rename layers to e.g. "Email", "Phone" or "PAN".',
+    };
   }
 
   const tally = new WriteTally();
@@ -247,12 +280,11 @@ async function fillByLayerNames(profDomain?: string) {
   }
 
   const people = groups.length;
-  figma.notify(
-    `Filled ${tally.updated} layer${tally.updated === 1 ? "" : "s"} for ${people} ${
+  return {
+    message: `Filled ${tally.updated} layer${tally.updated === 1 ? "" : "s"} for ${people} ${
       people === 1 ? "person" : "people"
     }.${tally.notes()}`,
-    { timeout: 3000 }
-  );
+  };
 }
 
 // ============================================================================

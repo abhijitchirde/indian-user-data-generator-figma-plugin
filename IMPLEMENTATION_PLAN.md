@@ -84,7 +84,7 @@ Deferred: Abhijit chose to do Phase 5 first.
 - [x] 5.1 `themeColors: true` and Figma's theme; footer and theme button from the other plugins
 - [x] 5.2 Persist UI choices with `figma.clientStorage` (theme, open tab, table fields, user count, both profession domains)
 - [x] 5.3 Copy-to-clipboard next to JSON/CSV download
-- [ ] 5.4 Quick actions via manifest `parameters`
+- [x] 5.4 Quick actions via manifest `parameters`
 - [ ] 5.5 Seeded randomness
 - [ ] 5.6 Auto-layout canvas table, "rows = users" layout, native FigJam table
 
@@ -249,7 +249,15 @@ at 360×620 with headless Edge. The window was then raised to 360×700, so the t
   `execCommand("copy")`, because `navigator.clipboard` is blocked in plugin iframes. The
   Clipboard API is the fallback. The UI then reports `copy-done`, and the plugin shows "Copied 25
   users for spreadsheets" or an error pointing to the downloads. Same 10,000-user limit as exports.
-- **5.4** Manifest `parameters` with suggestions from the registry. Handle `figma.on("run", ...)`.
+- **5.4** Manifest parameter `dataType` ("Data type") with `parameterOnly: false`, so the
+  plugin still opens normally from the menu. Suggestions (`quickActionSuggestions`, pure and
+  tested) list "Fill by layer names" and "Regenerate selected data" first, then every field by
+  label. They match on label, short label and aliases ("aadhaar" → UID (Aadhar)), with names
+  that start with the query first. Every launch now goes through `figma.on("run")`: the
+  relaunch button, a quick action (runs, then `closePlugin` with the result), or the plugin
+  window. `fillSelection` / `fillByLayerNames` return an `Outcome` message instead of calling
+  `figma.notify`, so the same text works as a toast and as the `closePlugin` message.
+  Professions from quick actions use the "Random" domain.
 - **5.5** Small seeded PRNG (mulberry32) replacing `Math.random` behind a `rng()` helper. Optional seed input.
 - **5.6** Table built with auto layout (hug height, fixed column width, wrapped text). Option for
   users as rows. `figma.createTable()` when `figma.editorType === "figjam"`.
@@ -303,6 +311,10 @@ Import `manifest.json` via *Plugins → Development → Import plugin from manif
 - [ ] Theme choice is remembered after closing and reopening the plugin
 - [ ] Reopen the plugin: same tab, same table ticks, user count and profession domains as last time
 - [ ] Table tab: tick fields, switch to the first tab and back, and the ticks are still there
+- [ ] Quick actions (Ctrl/Cmd + /): "Indian User Data" → type "email" → fills the selected text
+      layers without opening the plugin; "aadhaar" finds UID (Aadhar)
+- [ ] Quick actions: "Fill by layer names" and "Regenerate selected data" work on the selection
+- [ ] Opening the plugin from the Plugins menu still shows the window
 - [ ] "Copy: JSON" puts formatted JSON on the clipboard, with a "Copied N users as JSON" toast
 - [ ] "Copy: For spreadsheets" pastes into Google Sheets / Excel with one value per cell
       (addresses with commas stay in one cell)

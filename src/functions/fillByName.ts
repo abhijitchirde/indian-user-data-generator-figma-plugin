@@ -6,7 +6,9 @@
 // - A text layer is filled when its name matches a field ("Email", "Phone number", "PAN"...).
 // - Layers still named after their content (Figma's autoRename) are skipped: a label
 //   showing the text "Email" is auto-named "Email" and must not be overwritten.
-// - Each selected text layer is its own person.
+// - Text layers selected together are one person ("Name", "Email", "Phone" selected
+//   with shift-click get a matching name and email). If the same field is selected
+//   more than once, they are split by parent frame, then one layer per person.
 // - A selected frame/group/instance is one person, unless it contains the same field
 //   more than once (e.g. a list of cards). Then each child is split off the same way,
 //   so every card becomes its own person.
@@ -19,6 +21,7 @@ export interface TreeNode {
   /** Figma: true while a text layer's name follows its content */
   autoRename?: boolean;
   children?: readonly TreeNode[];
+  parent?: TreeNode | null;
 }
 
 export interface FieldMatch<T> {
@@ -60,6 +63,32 @@ function hasRepeatedField<T>(matches: FieldMatch<T>[]): boolean {
   return false;
 }
 
+/**
+ * Text layers that are not inside one selected container (selected directly, or loose
+ * next to a list of cards). One person if no field repeats; otherwise one person per
+ * parent frame; a field repeated within one parent gets one person per layer.
+ */
+function groupLooseTexts<T extends TreeNode>(texts: FieldMatch<T>[]): PersonGroup<T>[] {
+  if (texts.length === 0) return [];
+  if (!hasRepeatedField(texts)) return [{ scope: null, texts }];
+
+  const byParent = new Map<TreeNode | null, FieldMatch<T>[]>();
+  for (const text of texts) {
+    const parent = text.node.parent ?? null;
+    byParent.set(parent, [...(byParent.get(parent) ?? []), text]);
+  }
+
+  const groups: PersonGroup<T>[] = [];
+  for (const siblings of byParent.values()) {
+    if (hasRepeatedField(siblings)) {
+      for (const text of siblings) groups.push({ scope: null, texts: [text] });
+    } else {
+      groups.push({ scope: null, texts: siblings });
+    }
+  }
+  return groups;
+}
+
 export function planFillByName<T extends TreeNode>(
   roots: readonly T[],
   match: Matcher
@@ -85,22 +114,20 @@ export function planFillByName<T extends TreeNode>(
         assignContainer(child);
       }
     }
-    if (looseTexts.length === 0) return;
-    if (hasRepeatedField(looseTexts)) {
-      for (const text of looseTexts) groups.push({ scope: null, texts: [text] });
-    } else {
-      groups.push({ scope: null, texts: looseTexts });
-    }
+    groups.push(...groupLooseTexts(looseTexts));
   };
 
+  // Text layers selected directly are grouped together after the containers
+  const selectedTexts: FieldMatch<T>[] = [];
   for (const root of roots) {
     if (root.type === "TEXT") {
       const hit = matchText(root, match);
-      if (hit) groups.push({ scope: null, texts: [hit] });
+      if (hit) selectedTexts.push(hit);
     } else {
       assignContainer(root);
     }
   }
+  groups.push(...groupLooseTexts(selectedTexts));
 
   return groups;
 }

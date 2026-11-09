@@ -191,7 +191,9 @@ import, so the UI can use it later), each with `aliases` (`"e-mail"`, `"phone nu
 test makes sure no name maps to two fields. `planFillByName` (pure, in `fillByName.ts`) decides
 who is who:
 
-- Each selected text layer is its own person. A selected frame/card/instance is one person.
+- Text layers selected together (shift-click) are one person. If a field repeats, they are
+  split by parent frame, then one layer per person. A selected frame/card/instance is one person.
+  Loose layers filled together share a `personId` in plugin data, so Regenerate keeps them together.
 - If a container holds the same field more than once (a list of cards), it is split by
   child, so every card gets its own person. Loose text layers next to the cards share one person.
 - Text layers still named after their content (`autoRename`) are skipped. A label showing
@@ -252,6 +254,10 @@ Import `manifest.json` via *Plugins → Development → Import plugin from manif
       (email/UPI match the name, address matches city/state/PIN)
 - [ ] Fill by layer names: a card with layers renamed "Name", "Email", "Phone", "Address"
       gets one matching person (email matches the name)
+- [x] Fill by layer names on a selected frame / auto-layout frame: name and email match
+      (checked by Abhijit)
+- [ ] Fill by layer names with the text layers themselves selected (shift-click "Name",
+      "Email", "Phone"): one matching person; Regenerate keeps them matching
 - [ ] Fill by layer names: a label whose text is "Email" (auto-named) is left alone
 - [ ] Fill by layer names: select a list frame with several cards, so each card gets a different person
 - [ ] Fill by layer names inside component instances

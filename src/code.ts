@@ -17,6 +17,7 @@ import {
   describeRegenerateResult,
   regenerateNodes,
   REGENERATE_COMMAND,
+  newPersonId,
   tagPersonScope,
   tagTextField,
 } from "./functions/regenerate";
@@ -185,11 +186,14 @@ async function fillByLayerNames(profDomain?: string) {
   const tally = new WriteTally();
   for (const group of groups) {
     const person = new Person({ profDomain });
+    // Loose layers filled together share an id, so Regenerate keeps them one person
+    const personId =
+      !group.scope && group.texts.length > 1 ? newPersonId() : "";
     for (const { node, field } of group.texts) {
       const text = node as TextNode;
       const status = await writeText(text, person.get(field));
       tally.add(status);
-      if (status !== "failed") tagTextField(text, field, profDomain);
+      if (status !== "failed") tagTextField(text, field, profDomain, personId);
     }
     if (group.scope) {
       tagPersonScope(group.scope);

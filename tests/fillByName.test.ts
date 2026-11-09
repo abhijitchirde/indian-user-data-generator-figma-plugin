@@ -9,11 +9,11 @@ import { planFillByName, TreeNode } from "../src/functions/fillByName";
 
 // Minimal stand-ins for Figma nodes
 const text = (name: string, autoRename = false): TreeNode => ({ type: "TEXT", name, autoRename });
-const frame = (name: string, ...children: TreeNode[]): TreeNode => ({
-  type: "FRAME",
-  name,
-  children,
-});
+const frame = (name: string, ...children: TreeNode[]): TreeNode => {
+  const node: TreeNode = { type: "FRAME", name, children };
+  for (const child of children) child.parent = node;
+  return node;
+};
 
 /** Groups as [scope name | "-", "layer=Field" ...] for readable assertions */
 const plan = (...roots: TreeNode[]) =>
@@ -70,10 +70,39 @@ describe("planFillByName", () => {
     expect(plan(text("Email"))).toEqual([["-", "Email=Email"]]);
   });
 
-  test("several selected text layers are several people", () => {
-    expect(plan(text("Email"), text("Phone"))).toEqual([
+  test("text layers selected together are one person", () => {
+    // Shift-click "Name", "Email" and "Phone": the email must match the name
+    const card = frame("Card", text("Name"), text("Email"), text("Phone"));
+    const [name, email, phone] = card.children as TreeNode[];
+    expect(plan(name, email, phone)).toEqual([
+      ["-", "Name=FullName", "Email=Email", "Phone=Mobile"],
+    ]);
+  });
+
+  test("selected layers from different cards are split by card when a field repeats", () => {
+    const card1 = frame("Card 1", text("Name"), text("Email"));
+    const card2 = frame("Card 2", text("Name"), text("Email"));
+    const layers = [...(card1.children as TreeNode[]), ...(card2.children as TreeNode[])];
+    expect(plan(...layers)).toEqual([
+      ["-", "Name=FullName", "Email=Email"],
+      ["-", "Name=FullName", "Email=Email"],
+    ]);
+  });
+
+  test("the same field selected twice in one frame gives one person per layer", () => {
+    const column = frame("Column", text("Email"), text("Email"));
+    expect(plan(...(column.children as TreeNode[]))).toEqual([
       ["-", "Email=Email"],
-      ["-", "Phone=Mobile"],
+      ["-", "Email=Email"],
+    ]);
+  });
+
+  test("selected text layers and a selected card: the card is its own person", () => {
+    const card = frame("Card", text("Name"), text("Email"));
+    const loose = frame("Header", text("PAN"));
+    expect(plan(card, ...(loose.children as TreeNode[]))).toEqual([
+      ["Card", "Name=FullName", "Email=Email"],
+      ["-", "PAN=PAN"],
     ]);
   });
 

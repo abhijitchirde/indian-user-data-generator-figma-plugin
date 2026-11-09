@@ -13,6 +13,8 @@ import { writeText, WriteTally } from "./fonts";
 const FIELD_KEY = "field";
 const PROF_DOMAIN_KEY = "profDomain";
 const PERSON_SCOPE_KEY = "person";
+// Shared by loose text layers filled as one person (no container to mark as the scope)
+const PERSON_ID_KEY = "personId";
 
 export const REGENERATE_COMMAND = "regenerate";
 
@@ -34,13 +36,27 @@ export function addRegenerateButton(node: SceneNode) {
   );
 }
 
-/** Records which field a text layer holds and adds the "Regenerate data" button */
-export function tagTextField(node: TextNode, key: FieldKey, profDomain?: string) {
+/**
+ * Records which field a text layer holds and adds the "Regenerate data" button.
+ * personId links loose layers that were filled as one person; "" clears an old link.
+ */
+export function tagTextField(
+  node: TextNode,
+  key: FieldKey,
+  profDomain?: string,
+  personId = ""
+) {
   safely(() => {
     node.setPluginData(FIELD_KEY, key);
     node.setPluginData(PROF_DOMAIN_KEY, key === "Prof" ? profDomain ?? "Random" : "");
+    node.setPluginData(PERSON_ID_KEY, personId);
   });
   addRegenerateButton(node);
+}
+
+/** A new id for a group of loose layers filled as one person */
+export function newPersonId(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 /** Marks a container whose tagged text layers all describe the same user */
@@ -82,7 +98,11 @@ export async function regenerateNodes(
 
   for (const node of collectTaggedText(selection)) {
     const key = node.getPluginData(FIELD_KEY) as FieldKey;
-    const scopeId = findPersonScope(node)?.id ?? node.id;
+    // Same person if filled together: shared person id, else the nearest card/column
+    const personId = node.getPluginData(PERSON_ID_KEY);
+    const scopeId = personId
+      ? `person:${personId}`
+      : findPersonScope(node)?.id ?? node.id;
 
     let person = people.get(scopeId);
     if (!person) {

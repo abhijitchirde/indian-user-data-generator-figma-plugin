@@ -31,7 +31,12 @@ import {
   QUICK_ACTION_KEY,
   quickActionSuggestions,
 } from "./quickActions";
-import { buildTableMatrix, columnWidths, isTableLayout, TableLayout } from "./tableMatrix";
+import {
+  buildTableMatrix,
+  columnWidths,
+  isTableLayout,
+  TableLayout,
+} from "./tableMatrix";
 
 // Upper limits for one request. The canvas table creates ~2 nodes per cell,
 // so it is capped much lower than the file exports.
@@ -61,9 +66,9 @@ figma.on("run", async ({ command, parameters }) => {
     const outcome = await runQuickAction(parameters[QUICK_ACTION_KEY]);
     figma.closePlugin(outcome.message);
   } else {
-    // 700 fits the tallest group (Personal IDs) open in both tabs without scrolling.
+    // 680 fits the tallest group (Personal IDs) open in both tabs without scrolling.
     // themeColors adds a figma-light / figma-dark class to the UI's <html> (used by ui.css).
-    figma.showUI(__html__, { width: 360, height: 700, themeColors: true });
+    figma.showUI(__html__, { width: 360, height: 680, themeColors: true });
     figma.ui.onmessage = handleMessage;
   }
 });
@@ -71,7 +76,11 @@ figma.on("run", async ({ command, parameters }) => {
 async function runQuickAction(dataType: string): Promise<Outcome> {
   if (dataType === ACTION_FILL_BY_NAME) return fillByLayerNames();
   if (dataType === ACTION_REGENERATE) {
-    return { message: describeRegenerateResult(await regenerateNodes(figma.currentPage.selection)) };
+    return {
+      message: describeRegenerateResult(
+        await regenerateNodes(figma.currentPage.selection),
+      ),
+    };
   }
   return fillSelection(dataType);
 }
@@ -123,7 +132,9 @@ async function handleMessage(msg) {
   }
 
   if (msg.type === "generate-random") {
-    notifyOutcome(await fillSelection(msg.data.inputValue, msg.data.profDomain));
+    notifyOutcome(
+      await fillSelection(msg.data.inputValue, msg.data.profDomain),
+    );
   }
 
   if (msg.type === "fill-by-name") {
@@ -139,7 +150,9 @@ async function handleMessage(msg) {
   if (msg.type === "generate-table") {
     const count = parseUserCount(msg.data.noOfUsers, MAX_TABLE_USERS);
     if (count !== null) {
-      const layout = isTableLayout(msg.data.layout) ? msg.data.layout : "columns";
+      const layout = isTableLayout(msg.data.layout)
+        ? msg.data.layout
+        : "columns";
       await generateTable(msg.data.chkData, count, msg.data.profDomain, layout);
     }
   }
@@ -199,24 +212,27 @@ async function handleMessage(msg) {
       msg.ok
         ? msg.message
         : "Couldn't copy to the clipboard. Use the JSON or CSV download instead.",
-      { timeout: 2500, error: !msg.ok }
+      { timeout: 2500, error: !msg.ok },
     );
   }
 
   if (msg.type === "disclaimer") {
     figma.notify(
       "Everything here is made up for designs and testing. Names, IDs and addresses aren't real, and any match with a real person or business is a coincidence.",
-      { timeout: 6000 }
+      { timeout: 6000 },
     );
   }
 }
 
 /** Fills every selected text layer with a new value of the requested field */
-async function fillSelection(fieldKey: unknown, profDomain?: string): Promise<Outcome> {
+async function fillSelection(
+  fieldKey: unknown,
+  profDomain?: string,
+): Promise<Outcome> {
   if (!isFieldKey(fieldKey)) return { message: "Unknown data type" };
 
   const textNodes = figma.currentPage.selection.filter(
-    (node): node is TextNode => node.type === "TEXT"
+    (node): node is TextNode => node.type === "TEXT",
   );
   if (textNodes.length === 0) {
     return { message: "Please select text layers to add data" };
@@ -300,7 +316,7 @@ function placeAndReveal(node: SceneNode) {
     .filter((box): box is Rect => box !== null);
   const spot = findFreeSpot(
     centeredAt(figma.viewport.center, node.width, node.height),
-    obstacles
+    obstacles,
   );
   node.x = spot.x;
   node.y = spot.y;
@@ -309,7 +325,10 @@ function placeAndReveal(node: SceneNode) {
   // Center on it at the current zoom, or zoom out only if it's too big to fit
   const view = figma.viewport.bounds;
   if (spot.width <= view.width && spot.height <= view.height) {
-    figma.viewport.center = { x: spot.x + spot.width / 2, y: spot.y + spot.height / 2 };
+    figma.viewport.center = {
+      x: spot.x + spot.width / 2,
+      y: spot.y + spot.height / 2,
+    };
   } else {
     figma.viewport.scrollAndZoomIntoView([node]);
   }
@@ -323,7 +342,7 @@ async function generateTable(
   selection: FieldSelection,
   userCount: number,
   profDomain?: string,
-  layout: TableLayout = "columns"
+  layout: TableLayout = "columns",
 ) {
   const fields = selectedTableFields(selection);
   if (fields.length === 0) {
@@ -348,7 +367,10 @@ async function generateTable(
   figma.currentPage.appendChild(table);
   placeAndReveal(table);
 
-  figma.notify(`Table of ${userCount} user${userCount === 1 ? "" : "s"} added.`, {
-    timeout: 2500,
-  });
+  figma.notify(
+    `Table of ${userCount} user${userCount === 1 ? "" : "s"} added.`,
+    {
+      timeout: 2500,
+    },
+  );
 }

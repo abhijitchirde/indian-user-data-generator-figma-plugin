@@ -26,7 +26,7 @@ This document describes the design tokens and light/dark theme support of the In
 `src/code.ts` opens the UI with `themeColors: true`:
 
 ```typescript
-figma.showUI(__html__, { width: 360, height: 700, themeColors: true });
+figma.showUI(__html__, { width: 360, height: 680, themeColors: true });
 ```
 
 With `themeColors`, Figma adds a `figma-light` or `figma-dark` class to the UI's `<html>` and keeps it up to date when the user switches Figma's theme. Figma also injects its own `--figma-color-*` values. This plugin keeps its own palette, so those injected values are never used (see below).

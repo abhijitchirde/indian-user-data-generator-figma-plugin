@@ -37,7 +37,7 @@ Status legend: ✅ done · 🚧 in progress · ⏳ not started
 | 3 | Regenerate & smarter filling | ✅ (Figma QA pending) |
 | 4 | Data realism | ⏸️ deferred (Phase 5 first) |
 | 5 | UI, theming & quick actions | ✅ (Figma QA pending; 5.5 dropped) |
-| C | Community page assets | ✅ (icon choice pending) |
+| C | Community page assets | ✅ (upload pending) |
 
 ### Phase 1 checklist: Bug fixes
 
@@ -95,7 +95,8 @@ Deferred: Abhijit chose to do Phase 5 first.
 - [x] C.1 Four icon options (`community/exports/icons`), overview sheet at 64/32/16 px
 - [x] C.2 Cover (1920×960) with icon option 1 and the real plugin UI
 - [x] C.3 Four carousel slides (1920×1080) with real generated users
-- [ ] C.4 Pick the icon (option 1 assumed), then upload icon, cover, slides and text to Figma Community
+- [x] C.4 Pick the icon: option 1 (ID card), chosen by Abhijit; others can be tried later with `npm run community -- --icon N`
+- [ ] C.5 Upload icon, cover, slides and text to Figma Community
 
 See [community/README.md](community/README.md).
 

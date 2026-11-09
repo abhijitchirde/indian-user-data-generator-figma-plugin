@@ -30,7 +30,8 @@ speckle there; it works best as a larger mark.
 No India map or flag on purpose: the map outline is politically sensitive, and the national
 flag can't be used as a brand mark. The Indian feel comes from colour and craft instead.
 
-**The cover and slides use option 1.** To use another: `npm run community -- --icon 3`.
+**Chosen: option 1 (ID card).** The cover and slides use it. To try another later:
+`npm run community -- --icon 3` re-renders the cover and slides with that icon.
 
 ## Carousel
 

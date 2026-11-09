@@ -1,0 +1,16 @@
+/* Icon wrapper. Icons are SVG on a 100×100 grid, so they scale to any size.
+   Exported icons are square: Figma rounds the corners itself. Previews use .rounded. */
+
+.icon-wrap {
+  position: relative;
+  overflow: hidden;
+  flex: none;
+}
+.icon-wrap.rounded {
+  border-radius: 22%;
+}
+.icon-wrap svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

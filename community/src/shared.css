@@ -1,0 +1,41 @@
+/* Shared tokens and fonts for the Indian User Data community assets (icons, cover, slides).
+   Same type family as the author's other plugins (Desi Ipsum): Plus Jakarta Sans + Instrument Serif. */
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=block");
+
+:root {
+  --ink: #0f172a;
+  --ink-2: #334155;
+  --ink-3: #64748b;
+  --paper: #fbfaf7;
+  --line: #e7e5e0;
+  --brand: #4338ca; /* indigo, from icon option 1 */
+  --brand-2: #6d6cff;
+  --brand-tint: #eef2ff;
+  --saffron: #ff8a1f;
+  --rose: #f0436a;
+  --teal: #0f766e;
+  --figma-blue: #18a0fb; /* plugin UI accent */
+  --sans: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
+  --serif: "Instrument Serif", Georgia, serif;
+  --mono: "JetBrains Mono", Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--sans);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* A fixed-size canvas at the top-left; the render script screenshots exactly this area. */
+.canvas {
+  position: relative;
+  overflow: hidden;
+  background: var(--paper);
+}

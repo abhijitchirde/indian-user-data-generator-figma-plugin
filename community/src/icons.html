@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Indian User Data icon options</title>
+    <link rel="stylesheet" href="shared.css" />
+    <link rel="stylesheet" href="icons.css" />
+    <link rel="stylesheet" href="slides.css" />
+    <style>
+      .options {
+        margin-top: 60px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 28px;
+      }
+      .opt {
+        padding: 30px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+      .opt .big {
+        display: flex;
+        justify-content: center;
+        padding: 6px 0 4px;
+      }
+      .opt .big .icon-wrap {
+        box-shadow: 0 16px 36px rgba(15, 23, 42, 0.16);
+      }
+      .opt h3 {
+        margin: 0;
+        font: 800 30px/1 var(--sans);
+        letter-spacing: -0.02em;
+      }
+      .opt h3 span {
+        color: var(--ink-3);
+        font-weight: 600;
+        margin-right: 8px;
+      }
+      .opt p {
+        margin: 0;
+        font: 500 19px/1.45 var(--sans);
+        color: var(--ink-3);
+        min-height: 84px;
+      }
+      .sizes {
+        display: flex;
+        gap: 12px;
+      }
+      .bg {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        height: 96px;
+        border-radius: 14px;
+      }
+      .bg.light {
+        background: #f3f3f1;
+      }
+      .bg.dark {
+        background: #1e1e1e;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 1920×1080 sheet comparing the icon options at 240, 64, 32 and 16 px -->
+    <div class="canvas slide" id="canvas">
+      <div class="kicker">Icon options</div>
+      <h1 class="title">Pick one, <em>or mix ideas.</em></h1>
+      <div class="options" id="options"></div>
+    </div>
+    <script src="icons.js"></script>
+    <script>
+      const options = document.getElementById("options");
+      ICON_OPTIONS.forEach((o) => {
+        const card = document.createElement("div");
+        card.className = "card opt";
+        card.innerHTML = `<div class="big"></div><h3><span>${o.id}</span>${o.name}</h3><p>${o.note}</p>
+          <div class="sizes"><div class="bg light"></div><div class="bg dark"></div></div>`;
+        card.querySelector(".big").appendChild(renderIcon(o.id, 240, { rounded: true }));
+        for (const bg of card.querySelectorAll(".bg")) {
+          [64, 32, 16].forEach((s) => bg.appendChild(renderIcon(o.id, s, { rounded: true })));
+        }
+        options.appendChild(card);
+      });
+    </script>
+  </body>
+</html>

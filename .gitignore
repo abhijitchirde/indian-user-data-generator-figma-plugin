@@ -11,3 +11,5 @@ code.js
 #Prettier files
 .prettierrc
 .prettierignore
+# Hand-written sources for the community page assets (not build output)
+!community/src/*.js

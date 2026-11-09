@@ -259,14 +259,18 @@ at 360×620 with headless Edge. The window was then raised to 360×700, so the t
   `figma.notify`, so the same text works as a toast and as the `closePlugin` message.
   Professions from quick actions use the "Random" domain.
 - **5.5** All generators draw from `rng()` (`src/functions/random.ts`) instead of `Math.random`.
-  `withSeed(seed, fn)` swaps in mulberry32 seeded with an FNV-1a hash of the text for the
-  duration of a synchronous callback, then restores it (also after an error). An empty seed means
-  random. A "Seed" field (optional, saved with the other choices) sits under "Number of users" in
-  "Create user sets". It applies to the canvas table, JSON, CSV and both copies. The table now
-  generates all its users first, in the same order as `generateRecords`, so one seed gives the
-  same users everywhere, and the first N users don't change when more are asked for. Filling
-  text layers and Regenerate stay random. Limitation: dates and ID years are relative to the
-  current year, so a seed reproduces the same users within a calendar year.
+  A "Seed" field (optional, saved with the other choices) sits under "Number of users" in
+  "Create user sets". It applies to the canvas table, JSON, CSV and both copies. With a seed,
+  `Person.get` generates each value inside `withStream("seed|userNumber|field")`, which is
+  mulberry32 seeded with an FNV-1a hash of that key and restored afterwards, also after an error.
+  So every value has its own sequence. The same seed and user number give the same person
+  whatever fields are ticked, in whatever order they're read (table vs export), however many
+  users are asked for, and whichever profession domain is picked (only the profession changes).
+  A first version used one sequence per request, so ticking one more field changed every later
+  user; it was replaced the same day. Seeds are any text up to 40 characters, matched exactly
+  (case and leading zeros count, surrounding spaces don't). Filling text layers and Regenerate stay
+  random. Limitation: dates and ID years are relative to the current year, so a seed reproduces
+  the same users within a calendar year.
 - **5.6** Table built with auto layout (hug height, fixed column width, wrapped text). Option for
   users as rows. `figma.createTable()` when `figma.editorType === "figjam"`.
 

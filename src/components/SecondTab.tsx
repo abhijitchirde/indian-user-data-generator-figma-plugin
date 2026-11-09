@@ -260,7 +260,12 @@ const SecondTab = ({
               value={seed}
               maxLength={MAX_SEED_LENGTH}
               placeholder="Optional"
-              title="Type any word or number to get the same users every time (table, JSON and CSV). Leave empty for new users each time."
+              title={
+                "Any word or number, up to 40 characters (e.g. demo, 42, sprint-12). " +
+                "The same seed always gives the same users in the table, JSON and CSV, " +
+                "even if you tick more fields or ask for more users. Exact text: Demo and demo differ. " +
+                "Leave empty for new users each time."
+              }
               onChange={(e) => onSeedChange(e.target.value)}
             />
           </div>

@@ -32,6 +32,7 @@ import {
   generateUrbAddress,
   generateVoterID,
 } from "./functions/generators";
+import { normalizeSeed, withStream } from "./functions/random";
 
 export type { FieldKey, FieldSelection } from "./fieldMeta";
 export { isFieldKey, fieldForLayerName } from "./fieldMeta";
@@ -39,6 +40,10 @@ export { isFieldKey, fieldForLayerName } from "./fieldMeta";
 export interface PersonOptions {
   /** Profession domain from the UI dropdown, "Random" by default */
   profDomain?: string;
+  /** Optional seed: the same seed and user number always give the same person */
+  seed?: string;
+  /** User number within a seeded set (1, 2, 3...) */
+  index?: number;
 }
 
 export interface FieldDef extends FieldMeta {
@@ -59,7 +64,13 @@ export class Person {
     if (!this.values.has(key)) {
       const field = FIELDS_BY_KEY[key];
       if (!field) throw new Error(`Unknown field: ${key}`);
-      this.values.set(key, field.generate(this));
+      const seed = normalizeSeed(this.options.seed);
+      // Seeded: each field of each user has its own sequence, so ticking other
+      // fields or asking for more users never changes this value
+      const value = seed
+        ? withStream(`${seed}|${this.options.index ?? 1}|${key}`, () => field.generate(this))
+        : field.generate(this);
+      this.values.set(key, value);
     }
     return this.values.get(key);
   }
@@ -137,7 +148,7 @@ export function generateRecords(
   const fields = selectedTableFields(selection);
   const records: Record<string, string>[] = [];
   for (let i = 0; i < count; i++) {
-    const person = new Person(options);
+    const person = new Person({ ...options, index: i + 1 });
     const record: Record<string, string> = {};
     for (const field of fields) record[field.label] = person.get(field.key);
     records.push(record);

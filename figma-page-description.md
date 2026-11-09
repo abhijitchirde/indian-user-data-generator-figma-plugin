@@ -43,7 +43,7 @@ Create user sets (tables, JSON and CSV):
 
 1. Open the "Create user sets" tab in the plugin
 2. Select the fields you need using the checkboxes (basic fields are pre-selected)
-3. Enter the number of users (and optionally a seed: the same seed gives the same users every time, in the table, JSON and CSV)
+3. Enter the number of users (and optionally a seed, any word or number such as "demo" or "42": the same seed gives the same users every time, in the table, JSON and CSV, even if you tick more fields or ask for more users)
 4. Click "Add table to Figma" (up to 200 users), or get the same users as a JSON or CSV download, or copy them as JSON or for spreadsheets (up to 10,000). "For spreadsheets" pastes straight into Google Sheets or Excel, one value per cell
 
 In FigJam

@@ -13,7 +13,6 @@ import {
   selectedTableFields,
 } from "./fields";
 import { planFillByName } from "./functions/fillByName";
-import { withSeed } from "./functions/random";
 import { loadTableFonts, writeText, WriteTally } from "./functions/fonts";
 import {
   addRegenerateButton,
@@ -89,9 +88,10 @@ function userRecords(
   data: { chkData: FieldSelection; profDomain?: string; seed?: string },
   count: number
 ) {
-  return withSeed(data.seed, () =>
-    generateRecords(data.chkData, count, { profDomain: data.profDomain })
-  );
+  return generateRecords(data.chkData, count, {
+    profDomain: data.profDomain,
+    seed: data.seed,
+  });
 }
 
 /** Validates the requested number of users, notifying the user when it is invalid */
@@ -422,14 +422,10 @@ async function generateTable(
 
   await loadTableFonts();
 
-  // All users are generated first (same order as generateRecords), so one seed gives the
-  // same users in the table, JSON and CSV
-  const people = withSeed(seed, () =>
-    Array.from({ length: userCount }, () => {
-      const person = new Person({ profDomain });
-      for (const field of fields) person.get(field.key);
-      return person;
-    })
+  // User i with a seed is the same person as user i in the JSON/CSV with that seed
+  const people = Array.from(
+    { length: userCount },
+    (_, i) => new Person({ profDomain, seed, index: i + 1 })
   );
 
   // Adjust data column width based on whether addresses are included

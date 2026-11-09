@@ -5,11 +5,13 @@ import BottomSection from "./components/BottomSection";
 import FirstTab from "./components/FirstTab";
 import SecondTab from "./components/SecondTab";
 import Tabs from "./components/Tabs";
+import { usePrefs } from "./hooks/usePrefs";
 
 declare function require(path: string): any;
 
 function App() {
-  const [currentTab, setCurrentTab] = React.useState("1");
+  // Open tab, table fields, user count and domains, remembered between sessions
+  const { prefs, update } = usePrefs();
 
   React.useEffect(() => {
     // Listen for JSON and CSV data from plugin
@@ -45,10 +47,6 @@ function App() {
       window.removeEventListener("message", handleMessage);
     };
   }, []);
-
-  const getTab = (input) => {
-    setCurrentTab(input);
-  };
 
   const onFillByName = (profDomain) => {
     parent.postMessage(
@@ -112,21 +110,32 @@ function App() {
     );
   };
 
+  // Saved choices arrive within a few milliseconds; render once they're known
+  if (!prefs) return <main />;
+
   return (
     <main>
-      <Tabs tabID={getTab} />
+      <Tabs current={prefs.tab} onChange={(tab) => update({ tab })} />
 
-      {currentTab === "1" ? (
+      {prefs.tab === "1" ? (
         <FirstTab
           onClick={onGenerate}
           onFillByName={onFillByName}
           onRegenerate={onRegenerate}
+          domain={prefs.fillDomain}
+          onDomainChange={(fillDomain) => update({ fillDomain })}
         />
       ) : (
         <SecondTab
           onClick={onCreateTable}
           onExportJSON={onExportJSON}
           onExportCSV={onExportCSV}
+          selection={prefs.tableSelection}
+          onSelectionChange={(tableSelection) => update({ tableSelection })}
+          users={prefs.tableUsers}
+          onUsersChange={(tableUsers) => update({ tableUsers })}
+          domain={prefs.tableDomain}
+          onDomainChange={(tableDomain) => update({ tableDomain })}
         />
       )}
 

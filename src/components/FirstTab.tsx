@@ -4,8 +4,17 @@ import Accordion from "./Accordion";
 import DataButton from "./DataButton";
 import ProfessionSelect from "./ProfessionSelect";
 
-const FirstTab = ({ onClick, onFillByName, onRegenerate }) => {
-  const [selected, setSelected] = React.useState("Random");
+interface Props {
+  onClick: (fieldKey: string, profDomain: string) => void;
+  onFillByName: (profDomain: string) => void;
+  onRegenerate: () => void;
+  /** Profession domain (remembered between sessions) */
+  domain: string;
+  onDomainChange: (domain: string) => void;
+}
+
+const FirstTab = ({ onClick, onFillByName, onRegenerate, domain, onDomainChange }: Props) => {
+  const selected = domain;
   const [openGroup, setOpenGroup] = React.useState<FieldGroup | null>("personal");
 
   const clickHandler = (e) => {
@@ -58,7 +67,7 @@ const FirstTab = ({ onClick, onFillByName, onRegenerate }) => {
                       <ProfessionSelect
                         id="profession-domain-1"
                         value={selected}
-                        onChange={setSelected}
+                        onChange={onDomainChange}
                       />
                       <button
                         className="button-pri"

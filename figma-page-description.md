@@ -74,6 +74,7 @@ Generate data during collaborative sessions:
 - Preserves your design - Keeps fonts and styling from your target text layers, including mixed styles; if a font is missing, Inter is used at the closest weight
 - Flexible user sets - Any combination of fields, as a table on the canvas or as JSON/CSV
 - Theme-aware interface - Follows Figma's light or dark theme, or choose one yourself
+- Remembers your setup - The open tab, ticked fields, number of users, profession domains and theme are kept for next time
 
 ⚠️ Disclaimer: Everything here is made up for designs and testing. Names, IDs and addresses aren't real, and any match with a real person or business is a coincidence.
 

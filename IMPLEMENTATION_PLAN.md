@@ -35,7 +35,7 @@ Status legend: ✅ done · 🚧 in progress · ⏳ not started
 | 1 | Bug fixes | ✅ (Figma QA pending) |
 | 2 | Field registry & code health | 🚧 |
 | 3 | Regenerate & smarter filling | ✅ (Figma QA pending) |
-| 4 | Data realism | ⏳ |
+| 4 | Data realism | ⏸️ deferred (Phase 5 first) |
 | 5 | UI, theming & quick actions | 🚧 |
 
 ### Phase 1 checklist: Bug fixes
@@ -71,6 +71,8 @@ Status legend: ✅ done · 🚧 in progress · ⏳ not started
 
 ### Phase 4 checklist: Data realism
 
+Deferred: Abhijit chose to do Phase 5 first.
+
 - [ ] 4.1 Aadhaar with Verhoeff check digit (behind a "validator-safe IDs" toggle)
 - [ ] 4.2 GSTIN mod-36 checksum
 - [ ] 4.3 Voter ID (EPIC) as 3 letters + 7 digits
@@ -80,7 +82,7 @@ Status legend: ✅ done · 🚧 in progress · ⏳ not started
 ### Phase 5 checklist: UI, theming & quick actions
 
 - [x] 5.1 `themeColors: true` and Figma's theme; footer and theme button from the other plugins
-- [ ] 5.2 Persist UI choices with `figma.clientStorage` (theme done; selections, user count, domain to do)
+- [x] 5.2 Persist UI choices with `figma.clientStorage` (theme, open tab, table fields, user count, both profession domains)
 - [ ] 5.3 Copy-to-clipboard next to JSON/CSV download
 - [ ] 5.4 Quick actions via manifest `parameters`
 - [ ] 5.5 Seeded randomness
@@ -231,7 +233,14 @@ at 360×620 with headless Edge. The window was then raised to 360×700, so the t
   cycles 🌗 Auto (follows Figma) → ☀️ Light → 🌙 Dark via `html[data-theme]`, saved with
   `figma.clientStorage` (`themePreference`). `useFigmaTheme` (two separate copies of the
   state, in `ui.tsx` and the toggle) is replaced by `useThemePreference`.
-- **5.2** `figma.clientStorage.setAsync("prefs", {...})` on change. Send to the UI on open.
+- **5.2** `src/prefs.ts` (pure, tested) defines `UiPrefs`: open tab, first-tab profession domain,
+  table fields, user count and table profession domain. `sanitizePrefs` repairs anything stored
+  by an older version. Unknown fields are dropped, new fields get their default, and the user
+  count is clamped to 1–10,000. `usePrefs` asks the plugin for `uiPreferences` on open
+  (`get-ui-prefs` / `ui-prefs`) and saves 150ms after each change (`set-ui-prefs`). The tabs
+  render once the reply arrives, or after 500ms with defaults outside Figma. `Tabs`,
+  `FirstTab` and `SecondTab` are now controlled by `App`. This also fixes the table tab losing
+  its ticks when switching tabs (it used to unmount and reset).
 - **5.3** `navigator.clipboard` is blocked in plugin iframes, so use a hidden `<textarea>` + `document.execCommand("copy")`.
 - **5.4** Manifest `parameters` with suggestions from the registry. Handle `figma.on("run", ...)`.
 - **5.5** Small seeded PRNG (mulberry32) replacing `Math.random` behind a `rng()` helper. Optional seed input.
@@ -285,4 +294,6 @@ Import `manifest.json` via *Plugins → Development → Import plugin from manif
       icons and tooltips
 - [ ] Theme Auto follows Figma's light/dark theme (switch Figma's theme while the plugin is open)
 - [ ] Theme choice is remembered after closing and reopening the plugin
+- [ ] Reopen the plugin: same tab, same table ticks, user count and profession domains as last time
+- [ ] Table tab: tick fields, switch to the first tab and back, and the ticks are still there
 - [ ] Repeat the fill and table checks in FigJam, Slides and Buzz

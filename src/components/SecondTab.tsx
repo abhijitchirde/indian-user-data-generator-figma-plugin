@@ -7,42 +7,58 @@ import {
   selectionKey,
   tableSelection,
 } from "../fieldMeta";
+import { MAX_USERS_INPUT } from "../prefs";
 import Accordion from "./Accordion";
 import DataCheckbox from "./DataCheckbox";
 import ProfessionSelectionForTable from "./ProfessionSelectionForTable";
 
-const SecondTab = ({ onClick, onExportJSON, onExportCSV }) => {
-  const [chkData, setChkData] = React.useState<FieldSelection>(() =>
-    tableSelection("default")
-  );
+type UserSetHandler = (selection: FieldSelection, users: number | string, profDomain: string) => void;
 
-  const [usersInput, setUsersInput] = React.useState<number | string>(1);
+interface Props {
+  onClick: UserSetHandler;
+  onExportJSON: UserSetHandler;
+  onExportCSV: UserSetHandler;
+  // Remembered between sessions (owned by App)
+  selection: FieldSelection;
+  onSelectionChange: (selection: FieldSelection) => void;
+  users: number | string;
+  onUsersChange: (users: number | string) => void;
+  domain: string;
+  onDomainChange: (domain: string) => void;
+}
 
-  const [profDomain, setProfDomain] = React.useState("Random");
+const SecondTab = ({
+  onClick,
+  onExportJSON,
+  onExportCSV,
+  selection,
+  onSelectionChange,
+  users,
+  onUsersChange,
+  domain,
+  onDomainChange,
+}: Props) => {
+  const chkData = selection;
+  const usersInput = users;
+  const profDomain = domain;
 
   const [openGroup, setOpenGroup] = React.useState<FieldGroup | null>("personal");
 
   const inputChangeHandler = (e) => {
-    setUsersInput(e.target.value);
+    onUsersChange(e.target.value);
   };
 
+  // 10,000 is the export limit; the plugin enforces a lower limit for canvas tables
   const incrementUsers = () => {
-    setUsersInput((prev) => {
-      // 10,000 is the export limit; the plugin enforces a lower limit for canvas tables
-      const newValue = Math.min(10000, Number(prev) + 1);
-      return newValue;
-    });
+    onUsersChange(Math.min(MAX_USERS_INPUT, Number(usersInput) + 1));
   };
 
   const decrementUsers = () => {
-    setUsersInput((prev) => {
-      const newValue = Math.max(1, Number(prev) - 1);
-      return newValue;
-    });
+    onUsersChange(Math.max(1, Number(usersInput) - 1));
   };
 
   const setProfessionChecked = (checked: boolean) => {
-    setChkData((prev) => ({ ...prev, ProfValue: checked }));
+    onSelectionChange({ ...chkData, ProfValue: checked });
   };
 
   const isAnyCheckboxSelected = React.useMemo(
@@ -68,21 +84,18 @@ const SecondTab = ({ onClick, onExportJSON, onExportCSV }) => {
     }
   };
 
-  const resetSelections = () => setChkData(tableSelection("none"));
+  const resetSelections = () => onSelectionChange(tableSelection("none"));
 
-  const selectAll = () => setChkData(tableSelection("all"));
+  const selectAll = () => onSelectionChange(tableSelection("all"));
 
   const resetToDefault = () => {
-    setChkData(tableSelection("default"));
-    setProfDomain("Random");
-    setUsersInput(1);
+    onSelectionChange(tableSelection("default"));
+    onDomainChange("Random");
+    onUsersChange(1);
   };
 
   const updateCheckbox = (e) => {
-    const id = e.target.id;
-    setChkData((prev) => {
-      return { ...prev, [`${id}`]: e.target.checked };
-    });
+    onSelectionChange({ ...chkData, [e.target.id]: e.target.checked });
   };
 
   const toggleGroup = (group: FieldGroup) => {
@@ -145,7 +158,7 @@ const SecondTab = ({ onClick, onExportJSON, onExportCSV }) => {
                       checked={chkData.ProfValue === true}
                       onCheckedChange={setProfessionChecked}
                       domain={profDomain}
-                      onDomainChange={setProfDomain}
+                      onDomainChange={onDomainChange}
                     />
                   ) : (
                     fieldsInGroup(group.id, true).map((field) => (

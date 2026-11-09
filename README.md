@@ -85,6 +85,7 @@ The plugin follows your Figma app's **light or dark theme** automatically, or yo
 - **Preserves your design** - Keeps fonts and styling from your target text layers, including mixed styles; if a font is missing, Inter is used at the closest weight
 - **Flexible user sets** - Any combination of fields, as a table on the canvas or as JSON/CSV
 - **Theme-aware interface** - Follows Figma's light or dark theme, or choose one yourself
+- **Remembers your setup** - The open tab, ticked fields, number of users, profession domains and theme are kept for next time
 
 ---
 

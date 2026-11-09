@@ -29,6 +29,7 @@ const MAX_TABLE_USERS = 200;
 const MAX_EXPORT_USERS = 10000;
 
 const THEME_PREF_KEY = "themePreference";
+const UI_PREFS_KEY = "uiPreferences";
 
 var generateTableLabelWidth = 78;
 var generateTableDataWidth = 275;
@@ -78,6 +79,16 @@ async function handleMessage(msg) {
 
   if (msg.type === "set-theme-pref") {
     await figma.clientStorage.setAsync(THEME_PREF_KEY, msg.value);
+  }
+
+  // UI choices (tab, table fields, user count, domains); the UI validates what it gets
+  if (msg.type === "get-ui-prefs") {
+    const value = await figma.clientStorage.getAsync(UI_PREFS_KEY);
+    figma.ui.postMessage({ type: "ui-prefs", value: value ?? null });
+  }
+
+  if (msg.type === "set-ui-prefs") {
+    await figma.clientStorage.setAsync(UI_PREFS_KEY, msg.value);
   }
 
   if (msg.type === "generate-random") {

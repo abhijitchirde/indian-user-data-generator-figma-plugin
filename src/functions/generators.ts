@@ -3,8 +3,9 @@ import { numBetween } from "./utils";
 
 const thisYear = () => new Date().getFullYear();
 
-// Names can contain spaces ("Bala Gopal"), which are not valid in emails or UPI IDs
-const compact = (value: string) => value.replace(/\s+/g, "");
+// Names can contain spaces ("Bala Gopal") or apostrophes ("D’Alia"), which are
+// not valid in emails or UPI IDs: keep letters and digits only
+const compact = (value: string) => value.replace(/[^A-Za-z0-9]/g, "");
 
 //Personal details------------------------------
 

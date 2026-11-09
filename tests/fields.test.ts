@@ -158,6 +158,13 @@ describe("generators with multi-word names", () => {
     }
   });
 
+  test("apostrophes are removed from email and UPI", () => {
+    for (let i = 0; i < RUNS; i++) {
+      expect(generateEmail("Priya", "D’Alia")).toMatch(/^[a-z0-9.]+@/);
+      expect(generateUPIn("Priya", "D'Alia")).toMatch(/^priyadalia@[a-z0-9]+$/);
+    }
+  });
+
   test("PAN 5th character is the surname initial", () => {
     expect(generatePAN("sharma")[4]).toBe("S");
   });

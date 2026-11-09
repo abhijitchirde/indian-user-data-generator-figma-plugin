@@ -9,6 +9,7 @@
 
 import { FieldKey, isFieldKey, Person } from "../fields";
 import { writeText, WriteTally } from "./fonts";
+import { findTable, fitTable } from "./tableLayout";
 
 const FIELD_KEY = "field";
 const PROF_DOMAIN_KEY = "profDomain";
@@ -95,13 +96,18 @@ export async function regenerateNodes(
 ): Promise<WriteTally> {
   const people = new Map<string, Person>();
   const tally = new WriteTally();
+  const tables = new Set<FrameNode>();
 
   for (const node of collectTaggedText(selection)) {
     const key = node.getPluginData(FIELD_KEY) as FieldKey;
-    // Same person if filled together: shared person id, else the nearest card/column
+    const table = findTable(node);
+    if (table) tables.add(table);
+
+    // Same person if filled together: shared person id (scoped to its table, so a copied
+    // table gets its own people), else the nearest card
     const personId = node.getPluginData(PERSON_ID_KEY);
     const scopeId = personId
-      ? `person:${personId}`
+      ? `person:${personId}@${table?.id ?? ""}`
       : findPersonScope(node)?.id ?? node.id;
 
     let person = people.get(scopeId);
@@ -115,6 +121,9 @@ export async function regenerateNodes(
 
     tally.add(await writeText(node, person.get(key)));
   }
+
+  // New values have new lengths: re-fit each table's row heights
+  for (const table of tables) fitTable(table);
 
   return tally;
 }

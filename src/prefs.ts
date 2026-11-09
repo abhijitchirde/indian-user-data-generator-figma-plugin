@@ -9,6 +9,7 @@ import {
   selectionKey,
   tableSelection,
 } from "./fieldMeta";
+import { isTableLayout, TableLayout } from "./tableMatrix";
 
 export type TabId = "1" | "2";
 
@@ -23,6 +24,8 @@ export interface UiPrefs {
   tableUsers: number | string;
   /** Profession domain in the table tab */
   tableDomain: string;
+  /** Canvas table shape: one column per user, or one row per user */
+  tableLayout: TableLayout;
 }
 
 export const MAX_USERS_INPUT = 10000;
@@ -33,6 +36,7 @@ export const DEFAULT_PREFS: UiPrefs = {
   tableSelection: tableSelection("default"),
   tableUsers: 1,
   tableDomain: "Random",
+  tableLayout: "columns",
 };
 
 const isDomain = (value: unknown): value is string =>
@@ -59,5 +63,6 @@ export function sanitizePrefs(raw: unknown): UiPrefs {
     tableSelection: selection,
     tableUsers: users >= 1 ? Math.min(users, MAX_USERS_INPUT) : 1,
     tableDomain: isDomain(stored.tableDomain) ? stored.tableDomain : "Random",
+    tableLayout: isTableLayout(stored.tableLayout) ? stored.tableLayout : "columns",
   };
 }

@@ -8,6 +8,7 @@ import {
   tableSelection,
 } from "../fieldMeta";
 import { MAX_USERS_INPUT } from "../prefs";
+import type { TableLayout } from "../tableMatrix";
 import Accordion from "./Accordion";
 import DataCheckbox from "./DataCheckbox";
 import ProfessionSelectionForTable from "./ProfessionSelectionForTable";
@@ -27,7 +28,14 @@ interface Props {
   onUsersChange: (users: number | string) => void;
   domain: string;
   onDomainChange: (domain: string) => void;
+  layout: TableLayout;
+  onLayoutChange: (layout: TableLayout) => void;
 }
+
+const LAYOUT_OPTIONS: { value: TableLayout; label: string; hint: string }[] = [
+  { value: "columns", label: "Columns", hint: "One column per user, one row per field" },
+  { value: "rows", label: "Rows", hint: "One row per user, one column per field (better for many users)" },
+];
 
 const SecondTab = ({
   onClick,
@@ -41,6 +49,8 @@ const SecondTab = ({
   onUsersChange,
   domain,
   onDomainChange,
+  layout,
+  onLayoutChange,
 }: Props) => {
   const chkData = selection;
   const usersInput = users;
@@ -242,6 +252,27 @@ const SecondTab = ({
                   />
                 </svg>
               </button>
+            </div>
+          </div>
+
+          <div className="input-div">
+            <span className="input-label" id="layout-label">
+              Users as
+            </span>
+            <div className="segmented" role="radiogroup" aria-labelledby="layout-label">
+              {LAYOUT_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={layout === option.value}
+                  className={`segmented-option${layout === option.value ? " is-selected" : ""}`}
+                  title={option.hint}
+                  onClick={() => onLayoutChange(option.value)}
+                >
+                  {option.label}
+                </button>
+              ))}
             </div>
           </div>
 

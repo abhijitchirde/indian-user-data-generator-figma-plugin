@@ -111,7 +111,7 @@ function App() {
       {
         pluginMessage: {
           type: "generate-table",
-          data: { chkData, noOfUsers, profDomain },
+          data: { chkData, noOfUsers, profDomain, layout: prefs?.tableLayout },
         },
       },
       "*"
@@ -184,6 +184,8 @@ function App() {
           onUsersChange={(tableUsers) => update({ tableUsers })}
           domain={prefs.tableDomain}
           onDomainChange={(tableDomain) => update({ tableDomain })}
+          layout={prefs.tableLayout}
+          onLayoutChange={(tableLayout) => update({ tableLayout })}
         />
       )}
 

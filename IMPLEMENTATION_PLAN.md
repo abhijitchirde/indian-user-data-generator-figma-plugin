@@ -87,7 +87,7 @@ Deferred: Abhijit chose to do Phase 5 first.
 - [x] 5.4 Quick actions via manifest `parameters`
 - [ ] ~~5.5 Seeded randomness~~ (dropped: built, then removed at Abhijit's request)
 - [x] 5.7 New tables go in the middle of the current view, beside existing layers (not at 0,0)
-- [ ] 5.6 Auto-layout canvas table, "rows = users" layout, native FigJam table
+- [x] 5.6 Auto-layout canvas table, "rows = users" layout, native FigJam table
 
 ---
 
@@ -262,8 +262,20 @@ at 360×620 with headless Edge. The window was then raised to 360×700, so the t
 - **5.5** Dropped. A "Seed" field in "Create user sets" (same seed, same users in the table,
   JSON and CSV, with per-field seeded sequences) was built in `96c2988` / `3fbc9b9` and then
   reverted because the feature isn't needed. Revert the revert commit to bring it back.
-- **5.6** Table built with auto layout (hug height, fixed column width, wrapped text). Option for
-  users as rows. `figma.createTable()` when `figma.editorType === "figjam"`.
+- **5.6** `tableMatrix.ts` (pure, tested) decides what goes in each cell for both layouts.
+  "Users as columns" (the original shape) has one row per field. "Users as rows" has one row per
+  user, which is better for many users. It also sets column widths: addresses 240, email/UPI/
+  profession 170, others 120. `table.ts` draws it as a vertical auto-layout frame of horizontal
+  auto-layout rows. Each cell is a fixed-width auto-layout frame with wrapping text. Rows are
+  stacked frames rather than columns, so `fitRow` (`tableLayout.ts`) can let every cell hug its
+  text, then give all cells in the row the tallest height. Long addresses wrap instead of
+  overflowing, and borders line up. Regenerate re-fits any table it touched. Same colors and Roboto
+  as before, with 6px/5px cell padding. Users are tagged with a shared `personId` (scoped to the
+  table, so a copied table gets its own people), since there are no column frames to act as
+  person scopes any more. FigJam uses `figma.createTable` (header/label cells tinted, column
+  widths set), and its cells can't hold plugin data, so Regenerate doesn't apply there. The
+  layout choice ("Users as [Columns | Rows]") is saved with the other choices. The old fixed-size
+  cell code, its sizing globals and eight `format*` functions are removed (code.ts 609 → ~360 lines).
 - **5.7** Requested by Abhijit before 5.6. Tables used to land at (0, 0), on top of whatever was
   there, and the view jumped to them. Now `findFreeSpot` (`placement.ts`, pure and tested) starts
   from a rectangle centered on `figma.viewport.center`. If it overlaps any top-level layer on the
@@ -296,6 +308,13 @@ Import `manifest.json` via *Plugins → Development → Import plugin from manif
 - [ ] Table with 1, 10 and 200 users; 201 users is rejected with a message
 - [x] New table appears in the middle of the current view (checked by Abhijit)
 - [ ] After adding a table, the view centers on it (same zoom; zooms out only for big tables)
+- [ ] Table with addresses: long addresses wrap inside their cell, every row is as tall as its
+      tallest cell, borders line up (no text spilling out)
+- [ ] "Users as rows": header row of field names, one row per user; "Users as columns" looks
+      like before (field names down the left)
+- [ ] Regenerate a table: values change, row heights re-fit, each user stays consistent
+- [ ] Copy a table and regenerate both: the copies get different people
+- [ ] FigJam: "Add table to Figma" makes a native FigJam table with tinted header cells
 - [ ] New table next to existing frames: it lands to the right of them, never on top
 - [ ] JSON and CSV export (CSV opens in Excel/Sheets with addresses in one column)
 - [ ] Select a filled text layer: "Regenerate data" button appears in the properties panel and works

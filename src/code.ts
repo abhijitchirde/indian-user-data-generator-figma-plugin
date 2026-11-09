@@ -24,13 +24,14 @@ import {
   tagPersonScope,
   tagTextField,
 } from "./functions/regenerate";
-import { setFont, setFontLight } from "./functions/utils";
+import { createFigJamTable, createFrameTable } from "./functions/table";
 import {
   ACTION_FILL_BY_NAME,
   ACTION_REGENERATE,
   QUICK_ACTION_KEY,
   quickActionSuggestions,
 } from "./quickActions";
+import { buildTableMatrix, columnWidths, isTableLayout, TableLayout } from "./tableMatrix";
 
 // Upper limits for one request. The canvas table creates ~2 nodes per cell,
 // so it is capped much lower than the file exports.
@@ -39,11 +40,6 @@ const MAX_EXPORT_USERS = 10000;
 
 const THEME_PREF_KEY = "themePreference";
 const UI_PREFS_KEY = "uiPreferences";
-
-var generateTableLabelWidth = 78;
-var generateTableDataWidth = 275;
-var generateTableCellHeight = 26;
-var generateTableHeaderHeight = 16;
 
 /** What to tell the user after an action. quiet: no toast needed inside the plugin window */
 interface Outcome {
@@ -143,7 +139,8 @@ async function handleMessage(msg) {
   if (msg.type === "generate-table") {
     const count = parseUserCount(msg.data.noOfUsers, MAX_TABLE_USERS);
     if (count !== null) {
-      await generateTable(msg.data.chkData, count, msg.data.profDomain);
+      const layout = isTableLayout(msg.data.layout) ? msg.data.layout : "columns";
+      await generateTable(msg.data.chkData, count, msg.data.profDomain, layout);
     }
   }
 
@@ -293,317 +290,65 @@ async function fillByLayerNames(profDomain?: string): Promise<Outcome> {
 // ============================================================================
 
 /**
- * Creates a table cell with text content
- * @param text - The text content to display in the cell
- * @param frameFormatter - Function to format the frame (e.g., formatLabelFrame, formatContentFrame)
- * @param textFormatter - Function to format the text (e.g., formatLabelText, formatContentText)
- * @returns The cell frame and its text layer
+ * Puts a new node in the middle of what the user is looking at, to the right of anything
+ * already there (never on top of existing designs), selects it and scrolls to it.
  */
-function createTableCell(
-  text: string,
-  frameFormatter: (frame: FrameNode) => void,
-  textFormatter: (text: TextNode) => void
-): { frame: FrameNode; text: TextNode } {
-  const cellFrame = figma.createFrame();
-  frameFormatter(cellFrame);
+function placeAndReveal(node: SceneNode) {
+  const obstacles = figma.currentPage.children
+    .filter((child) => child !== node)
+    .map((child) => child.absoluteBoundingBox)
+    .filter((box): box is Rect => box !== null);
+  const spot = findFreeSpot(
+    centeredAt(figma.viewport.center, node.width, node.height),
+    obstacles
+  );
+  node.x = spot.x;
+  node.y = spot.y;
+  figma.currentPage.selection = [node];
 
-  const cellText = figma.createText();
-  setFont(cellText);
-  cellText.characters = text;
-  textFormatter(cellText);
-
-  cellFrame.appendChild(cellText);
-  return { frame: cellFrame, text: cellText };
-}
-
-/**
- * Creates a header cell for the table
- * @param text - Header text content
- * @param isLabelHeader - If true, formats as label header, otherwise as user header
- */
-function createHeaderCell(text: string, isLabelHeader: boolean): FrameNode {
-  if (isLabelHeader) {
-    return createTableCell(text, formatLabelHeaderFrame, formatLabelHeaderText)
-      .frame;
+  // Center on it at the current zoom, or zoom out only if it's too big to fit
+  const view = figma.viewport.bounds;
+  if (spot.width <= view.width && spot.height <= view.height) {
+    figma.viewport.center = { x: spot.x + spot.width / 2, y: spot.y + spot.height / 2 };
+  } else {
+    figma.viewport.scrollAndZoomIntoView([node]);
   }
-  return createTableCell(text, formatUserHeaderFrame, formatUserHeaderText)
-    .frame;
 }
 
 /**
- * Creates the label column section with all field labels
- * @returns Object with labelSection frame and its calculated height
- */
-function createLabelSection(selection: FieldSelection): {
-  section: FrameNode;
-  height: number;
-} {
-  const labelSection = figma.createFrame();
-  labelSection.layoutMode = "VERTICAL";
-  labelSection.itemSpacing = 0;
-  labelSection.name = "Labels";
-
-  let sectionHeight = 0;
-
-  // Add header cell for labels column
-  labelSection.appendChild(createHeaderCell("Details", true));
-  sectionHeight += generateTableHeaderHeight;
-
-  for (const field of selectedTableFields(selection)) {
-    labelSection.appendChild(
-      createTableCell(field.label, formatLabelFrame, formatLabelText).frame
-    );
-    sectionHeight += generateTableCellHeight;
-  }
-
-  // Resize and remove autolayout before adding to parent
-  labelSection.resize(generateTableLabelWidth, sectionHeight);
-  labelSection.layoutMode = "NONE";
-
-  return { section: labelSection, height: sectionHeight };
-}
-
-/**
- * Creates a data column for one user. The column is tagged as one person,
- * so "Regenerate data" replaces it with a new, internally consistent user.
- */
-function createDataSection(
-  userIndex: number,
-  person: Person,
-  selection: FieldSelection,
-  sectionHeight: number
-): FrameNode {
-  const dataSection = figma.createFrame();
-  dataSection.layoutMode = "VERTICAL";
-  dataSection.itemSpacing = 0;
-  dataSection.name = `User ${userIndex}`;
-  tagPersonScope(dataSection);
-
-  // Add header cell for user column
-  dataSection.appendChild(createHeaderCell(`User ${userIndex}`, false));
-
-  for (const field of selectedTableFields(selection)) {
-    const cell = createTableCell(
-      person.get(field.key),
-      formatContentFrame,
-      formatContentText
-    );
-    cell.text.name = field.label;
-    tagTextField(cell.text, field.key, person.options.profDomain);
-    dataSection.appendChild(cell.frame);
-  }
-
-  // Resize and remove autolayout before adding to parent
-  dataSection.resize(generateTableDataWidth, sectionHeight);
-  dataSection.layoutMode = "NONE";
-
-  return dataSection;
-}
-
-/**
- * Generates a table with one label column and one column per user,
- * and adds it to the canvas.
+ * Adds a table of users to the canvas: users as columns (one row per field) or users as
+ * rows. Frames with auto layout in Figma/Slides/Buzz, FigJam's own table in FigJam.
  */
 async function generateTable(
   selection: FieldSelection,
   userCount: number,
-  profDomain?: string
+  profDomain?: string,
+  layout: TableLayout = "columns"
 ) {
-  if (selectedTableFields(selection).length === 0) {
+  const fields = selectedTableFields(selection);
+  if (fields.length === 0) {
     figma.notify("Please select at least one field", { timeout: 1500 });
     return;
   }
 
-  await loadTableFonts();
-
-  // Adjust data column width based on whether addresses are included
-  generateTableDataWidth =
-    selection.RurAddressValue || selection.UrbAddressValue ? 275 : 135;
-
-  // Create main table container frame
-  const tableFrame = figma.createFrame();
-  tableFrame.layoutMode = "HORIZONTAL";
-  tableFrame.itemSpacing = 0;
-  tableFrame.name = "Indian user data";
-  let tableFrameWidth = 0;
-
-  const { section: labelSection, height: tableFrameHeight } =
-    createLabelSection(selection);
-  tableFrame.appendChild(labelSection);
-  tableFrameWidth += generateTableLabelWidth;
-
-  for (let i = 1; i <= userCount; i++) {
+  const users = Array.from({ length: userCount }, () => {
     const person = new Person({ profDomain });
-    tableFrame.appendChild(
-      createDataSection(i, person, selection, tableFrameHeight)
-    );
-    tableFrameWidth += generateTableDataWidth;
-  }
+    return Object.fromEntries(fields.map((f) => [f.key, person.get(f.key)]));
+  });
+  const matrix = buildTableMatrix(fields, users, layout);
+  const widths = columnWidths(fields, userCount, layout);
 
-  // Finalize table frame dimensions and remove autolayout
-  tableFrame.resize(tableFrameWidth, tableFrameHeight);
-  tableFrame.layoutMode = "NONE";
-  addRegenerateButton(tableFrame);
-
-  // Place it in the middle of what the user is looking at, to the right of anything
-  // already there, instead of at (0, 0) on top of existing designs
-  figma.currentPage.appendChild(tableFrame);
-  const obstacles = figma.currentPage.children
-    .filter((node) => node !== tableFrame)
-    .map((node) => node.absoluteBoundingBox)
-    .filter((box): box is Rect => box !== null);
-  const spot = findFreeSpot(
-    centeredAt(figma.viewport.center, tableFrame.width, tableFrame.height),
-    obstacles
-  );
-  tableFrame.x = spot.x;
-  tableFrame.y = spot.y;
-  figma.currentPage.selection = [tableFrame];
-
-  // Always bring the new table into view: center on it at the current zoom, or zoom out
-  // only if it's too big to fit
-  const view = figma.viewport.bounds;
-  if (spot.width <= view.width && spot.height <= view.height) {
-    figma.viewport.center = {
-      x: spot.x + spot.width / 2,
-      y: spot.y + spot.height / 2,
-    };
+  let table: SceneNode;
+  if (figma.editorType === "figjam") {
+    table = await createFigJamTable(matrix, widths);
   } else {
-    figma.viewport.scrollAndZoomIntoView([tableFrame]);
+    await loadTableFonts();
+    table = createFrameTable(matrix, widths, profDomain);
   }
+  figma.currentPage.appendChild(table);
+  placeAndReveal(table);
 
-  figma.notify(`Table of ${userCount} users generated successfully.`, {
+  figma.notify(`Table of ${userCount} user${userCount === 1 ? "" : "s"} added.`, {
     timeout: 2500,
   });
-}
-
-function formatLabelFrame(inputFrameNode) {
-  inputFrameNode.resize(generateTableLabelWidth, generateTableCellHeight);
-  inputFrameNode.fills = [
-    {
-      type: "SOLID",
-      color: { r: 0.976, g: 0.984, b: 1 },
-      // color: { r: 0.96, g: 0.96, b: 0.96 },
-    },
-  ];
-  inputFrameNode.strokes = [
-    {
-      type: "SOLID",
-      color: { r: 0.58, g: 0.698, b: 0.858 },
-      // color: { r: 0.6, g: 0.6, b: 0.6 },
-    },
-  ];
-  inputFrameNode.strokeWeight = 0.25;
-  inputFrameNode.strokeAlign = "CENTER";
-}
-
-function formatContentFrame(inputFrameNode) {
-  inputFrameNode.resize(generateTableDataWidth, generateTableCellHeight);
-  inputFrameNode.strokes = [
-    {
-      type: "SOLID",
-      color: { r: 0.58, g: 0.698, b: 0.858 },
-      // color: { r: 0.6, g: 0.6, b: 0.6},
-    },
-  ];
-  inputFrameNode.strokeWeight = 0.25;
-  inputFrameNode.strokeAlign = "CENTER";
-}
-
-function formatLabelHeaderFrame(inputFrameNode) {
-  inputFrameNode.resize(generateTableLabelWidth, generateTableHeaderHeight);
-  inputFrameNode.fills = [
-    {
-      type: "SOLID",
-      color: { r: 0.858, g: 0.925, b: 1 },
-    },
-  ];
-  inputFrameNode.strokes = [
-    {
-      type: "SOLID",
-      color: { r: 0.58, g: 0.698, b: 0.858 },
-      // color: { r: 0.6, g: 0.6, b: 0.6 },
-    },
-  ];
-  inputFrameNode.strokeWeight = 0.25;
-  inputFrameNode.strokeAlign = "CENTER";
-}
-
-function formatUserHeaderFrame(inputFrameNode) {
-  inputFrameNode.resize(generateTableDataWidth, generateTableHeaderHeight);
-  inputFrameNode.fills = [
-    {
-      type: "SOLID",
-      color: { r: 0.858, g: 0.925, b: 1 },
-    },
-  ];
-  inputFrameNode.strokes = [
-    {
-      type: "SOLID",
-      // color: { r: 0.58, g: 0.698, b: 0.858 },
-      color: { r: 0.6, g: 0.6, b: 0.6 },
-    },
-  ];
-  inputFrameNode.strokeWeight = 0.25;
-  inputFrameNode.strokeAlign = "CENTER";
-}
-
-function formatLabelText(inputTextNode) {
-  setFontLight(inputTextNode);
-  inputTextNode.fontSize = 8;
-  inputTextNode.fills = [
-    {
-      type: "SOLID",
-      color: { r: 0.2, g: 0.2, b: 0.2 },
-    },
-  ];
-  inputTextNode.x += 3;
-  inputTextNode.resize(generateTableLabelWidth - 6, generateTableCellHeight);
-  inputTextNode.textAlignHorizontal = "LEFT";
-  inputTextNode.textAlignVertical = "CENTER";
-}
-
-function formatContentText(inputTextNode) {
-  setFont(inputTextNode);
-  inputTextNode.fontSize = 9;
-  inputTextNode.fills = [
-    {
-      type: "SOLID",
-      color: { r: 0.2, g: 0.2, b: 0.2 },
-    },
-  ];
-  inputTextNode.x += 4;
-  inputTextNode.resize(generateTableDataWidth - 8, generateTableCellHeight);
-  inputTextNode.textAlignHorizontal = "LEFT";
-  inputTextNode.textAlignVertical = "CENTER";
-}
-
-function formatLabelHeaderText(inputTextNode) {
-  setFontLight(inputTextNode);
-  inputTextNode.fontSize = 8;
-  inputTextNode.fills = [
-    {
-      type: "SOLID",
-      color: { r: 0.2, g: 0.2, b: 0.2 },
-    },
-  ];
-  inputTextNode.x += 3;
-  inputTextNode.resize(generateTableLabelWidth - 6, generateTableHeaderHeight);
-  inputTextNode.textAlignHorizontal = "LEFT";
-  inputTextNode.textAlignVertical = "CENTER";
-}
-
-function formatUserHeaderText(inputTextNode) {
-  setFontLight(inputTextNode);
-  inputTextNode.fontSize = 8;
-  inputTextNode.fills = [
-    {
-      type: "SOLID",
-      color: { r: 0.2, g: 0.2, b: 0.2 },
-    },
-  ];
-  inputTextNode.x += 4;
-  inputTextNode.resize(generateTableDataWidth - 8, generateTableHeaderHeight);
-  inputTextNode.textAlignHorizontal = "LEFT";
-  inputTextNode.textAlignVertical = "CENTER";
 }

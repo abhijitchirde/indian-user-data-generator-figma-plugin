@@ -16,8 +16,15 @@ describe("sanitizePrefs", () => {
       tableSelection: tableSelection("all"),
       tableUsers: 25,
       tableDomain: "Finance",
+      tableLayout: "rows",
     };
     expect(sanitizePrefs(stored)).toEqual(stored);
+  });
+
+  test("table layout is columns or rows, columns by default", () => {
+    expect(sanitizePrefs({}).tableLayout).toBe("columns");
+    expect(sanitizePrefs({ tableLayout: "grid" }).tableLayout).toBe("columns");
+    expect(sanitizePrefs({ tableLayout: "rows" }).tableLayout).toBe("rows");
   });
 
   test("unknown or broken values fall back to defaults", () => {

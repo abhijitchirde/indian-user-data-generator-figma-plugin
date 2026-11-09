@@ -52,7 +52,7 @@ The plugin follows your Figma app's **light or dark theme** automatically, or yo
 
 1. Open the "Create user sets" tab in the plugin
 2. Select the fields you need using the checkboxes (basic fields are pre-selected)
-3. Enter the number of users
+3. Enter the number of users and choose the table shape: users as columns (one column per user) or users as rows (one row per user, better for many users)
 4. Click "Add table to Figma" (up to 200 users; the table appears in the middle of your view, next to your existing designs, never on top of them, and Figma scrolls to it), or get the same users as a JSON or CSV download, or copy them as JSON or for spreadsheets (up to 10,000). "For spreadsheets" pastes straight into Google Sheets or Excel, one value per cell
 
 ### In FigJam
@@ -89,7 +89,7 @@ The plugin follows your Figma app's **light or dark theme** automatically, or yo
 - **Regenerate anytime** - Refresh data in place from the plugin or from Figma's right panel; cards and tables stay one person each
 - **Culturally accurate** - All data follows Indian naming conventions, address formats, and ID structures
 - **Preserves your design** - Keeps fonts and styling from your target text layers, including mixed styles; if a font is missing, Inter is used at the closest weight
-- **Flexible user sets** - Any combination of fields, as a table on the canvas, as JSON/CSV downloads, or copied for spreadsheets
+- **Flexible user sets** - Any combination of fields, as a table on the canvas (long addresses wrap neatly; FigJam gets a native table), as JSON/CSV downloads, or copied for spreadsheets
 - **Theme-aware interface** - Follows Figma's light or dark theme, or choose one yourself
 - **Quick actions** - Fill or regenerate from Figma's command bar (Ctrl/Cmd + /) without opening the plugin
 - **Remembers your setup** - The open tab, ticked fields, number of users, profession domains and theme are kept for next time

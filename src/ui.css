@@ -579,6 +579,50 @@ div label input:checked + span {
   overflow: hidden;
 }
 
+/* "Number of users" and "Users as" labels share a width, so the controls line up */
+.separate-button-div .input-label {
+  min-width: 7.2rem;
+  text-align: right;
+}
+
+/* "Users as [Columns | Rows]": same width as the users stepper above it */
+.segmented {
+  display: inline-flex;
+  width: calc(8.5rem + 2px);
+  margin-left: 2%;
+  margin-right: 3.2%;
+  padding: 2px;
+  gap: 2px;
+  border: 1px solid var(--figma-color-border-strong);
+  border-radius: var(--figma-radius-lg);
+  background-color: var(--figma-color-bg-secondary);
+}
+
+.segmented-option {
+  flex: 1;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--figma-radius-md);
+  background: none;
+  font-family: var(--figma-font-family);
+  font-size: var(--figma-font-size-xs);
+  color: var(--figma-color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.segmented-option:hover:not(.is-selected) {
+  color: var(--figma-color-text);
+}
+
+.segmented-option.is-selected {
+  background-color: var(--figma-color-bg);
+  color: var(--figma-color-text-brand);
+  font-weight: 600;
+  box-shadow: var(--figma-shadow-small);
+}
+
 /* "Copy: JSON · For spreadsheets" under the export buttons */
 .copy-links {
   display: flex;

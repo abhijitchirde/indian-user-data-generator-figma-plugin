@@ -231,7 +231,7 @@ main {
 .smart-fill {
   display: flex;
   flex-direction: column;
-  gap: var(--figma-space-xs);
+  gap: var(--figma-space-sm);
   flex-shrink: 0;
   margin: 0 var(--figma-space-xs) var(--figma-space-sm);
   padding: var(--figma-space-sm);

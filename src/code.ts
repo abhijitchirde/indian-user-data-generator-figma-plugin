@@ -132,8 +132,8 @@ async function handleMessage(msg) {
 
   if (msg.type === "disclaimer") {
     figma.notify(
-      "This plugin generates sample user data offline. Any resemblances to real world entities are pure unintentional coincidences.",
-      { timeout: 4000 }
+      "Everything here is made up for designs and testing. Names, IDs and addresses aren't real, and any match with a real person or business is a coincidence.",
+      { timeout: 6000 }
     );
   }
 }

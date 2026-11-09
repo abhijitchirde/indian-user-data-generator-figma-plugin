@@ -1,7 +1,9 @@
-// Single source of truth for every data field the plugin can generate.
-// Used by single-layer fill, the canvas table, JSON/CSV export and "Regenerate".
-// Keys match the values the UI already sends, and table checkboxes use `${key}Value`.
+// Generators for every field in the registry (fieldMeta.ts), plus the Person model
+// and table/JSON/CSV helpers. Used by the plugin code only: the UI imports
+// fieldMeta.ts directly, so the dataset stays out of the UI bundle.
 
+import { FIELD_META, selectionKey } from "./fieldMeta";
+import type { FieldKey, FieldMeta, FieldSelection } from "./fieldMeta";
 import {
   generateAadhar,
   generateCIN,
@@ -31,55 +33,15 @@ import {
   generateVoterID,
 } from "./functions/generators";
 
-export type FieldKey =
-  | "FirstName"
-  | "LastName"
-  | "FullName"
-  | "DoB"
-  | "Email"
-  | "Mobile"
-  | "Prof"
-  | "RurAddress"
-  | "UrbAddress"
-  | "City"
-  | "State"
-  | "CityState"
-  | "PIN"
-  | "Pass"
-  | "UID"
-  | "PAN"
-  | "UPIn"
-  | "UPIm"
-  | "DL"
-  | "RC"
-  | "RCBH"
-  | "Voter"
-  | "PANi"
-  | "GSTIN"
-  | "CIN"
-  | "DIN"
-  | "LLPIN"
-  | "TAN";
-
-export type FieldGroup =
-  | "personal"
-  | "profession"
-  | "location"
-  | "personalIds"
-  | "businessIds";
+export type { FieldKey, FieldSelection } from "./fieldMeta";
+export { isFieldKey, fieldForLayerName } from "./fieldMeta";
 
 export interface PersonOptions {
   /** Profession domain from the UI dropdown, "Random" by default */
   profDomain?: string;
 }
 
-export interface FieldDef {
-  key: FieldKey;
-  /** Label used in the canvas table, JSON keys and CSV headers */
-  label: string;
-  group: FieldGroup;
-  /** false for fields that are only offered as single-layer buttons */
-  inTable: boolean;
+export interface FieldDef extends FieldMeta {
   generate: (person: Person) => string;
 }
 
@@ -108,89 +70,61 @@ export class Person {
   }
 }
 
-export const FIELDS: FieldDef[] = [
+// Each generator reads the fields it depends on from the person,
+// so a person's fields always agree with each other.
+const GENERATORS: Record<FieldKey, (p: Person) => string> = {
   // Personal details
-  { key: "FirstName", label: "First Name", group: "personal", inTable: true,
-    generate: () => generateFirstName() },
-  { key: "LastName", label: "Last Name", group: "personal", inTable: true,
-    generate: () => generateLastName() },
-  { key: "FullName", label: "Full Name", group: "personal", inTable: true,
-    generate: (p) => `${p.get("FirstName")} ${p.get("LastName")}` },
-  { key: "DoB", label: "Date of Birth", group: "personal", inTable: true,
-    generate: () => generateDoB() },
-  { key: "Email", label: "Email", group: "personal", inTable: true,
-    generate: (p) => generateEmail(p.get("FirstName"), p.get("LastName")) },
-  { key: "Mobile", label: "Mobile", group: "personal", inTable: true,
-    generate: () => generateMobile() },
+  FirstName: () => generateFirstName(),
+  LastName: () => generateLastName(),
+  FullName: (p) => `${p.get("FirstName")} ${p.get("LastName")}`,
+  DoB: () => generateDoB(),
+  Email: (p) => generateEmail(p.get("FirstName"), p.get("LastName")),
+  Mobile: () => generateMobile(),
 
   // Profession
-  { key: "Prof", label: "Profession", group: "profession", inTable: true,
-    generate: (p) => generateProf(p.options.profDomain ?? "Random") },
+  Prof: (p) => generateProf(p.options.profDomain ?? "Random"),
 
   // Location
-  { key: "RurAddress", label: "Rural Address", group: "location", inTable: true,
-    generate: (p) => generateRurAddress(p.get("State"), p.get("City"), p.get("PIN")) },
-  { key: "UrbAddress", label: "Urban Address", group: "location", inTable: true,
-    generate: (p) => generateUrbAddress(p.get("State"), p.get("City"), p.get("PIN")) },
-  { key: "City", label: "City", group: "location", inTable: true,
-    generate: (p) => generateCity(p.get("State")) },
-  { key: "State", label: "State", group: "location", inTable: true,
-    generate: () => generateState() },
-  { key: "CityState", label: "City, State", group: "location", inTable: false,
-    generate: (p) => `${p.get("City")}, ${p.get("State")}` },
-  { key: "PIN", label: "PIN Code", group: "location", inTable: true,
-    generate: (p) => generatePINCode(p.get("State")) },
+  RurAddress: (p) => generateRurAddress(p.get("State"), p.get("City"), p.get("PIN")),
+  UrbAddress: (p) => generateUrbAddress(p.get("State"), p.get("City"), p.get("PIN")),
+  City: (p) => generateCity(p.get("State")),
+  State: () => generateState(),
+  CityState: (p) => `${p.get("City")}, ${p.get("State")}`,
+  PIN: (p) => generatePINCode(p.get("State")),
 
   // Personal IDs
-  { key: "Pass", label: "Passport", group: "personalIds", inTable: true,
-    generate: () => generatePassport() },
-  { key: "UID", label: "UID (Aadhar)", group: "personalIds", inTable: true,
-    generate: () => generateAadhar() },
-  { key: "PAN", label: "PAN (Personal)", group: "personalIds", inTable: true,
-    generate: (p) => generatePAN(p.get("LastName")) },
-  { key: "UPIn", label: "UPI (name)", group: "personalIds", inTable: true,
-    generate: (p) => generateUPIn(p.get("FirstName"), p.get("LastName")) },
-  { key: "UPIm", label: "UPI (mobile)", group: "personalIds", inTable: true,
-    generate: (p) => generateUPIm(p.get("Mobile")) },
-  { key: "DL", label: "Driving License", group: "personalIds", inTable: true,
-    generate: (p) => generateDL(p.get("State"), p.birthYear()) },
-  { key: "RC", label: "Vehicle Reg. (RC)", group: "personalIds", inTable: true,
-    generate: (p) => generateRC(p.get("State")) },
-  { key: "RCBH", label: "Vehicle Reg. (BH series)", group: "personalIds", inTable: true,
-    generate: () => generateRCBH() },
-  { key: "Voter", label: "Voter ID", group: "personalIds", inTable: true,
-    generate: () => generateVoterID() },
+  Pass: () => generatePassport(),
+  UID: () => generateAadhar(),
+  PAN: (p) => generatePAN(p.get("LastName")),
+  UPIn: (p) => generateUPIn(p.get("FirstName"), p.get("LastName")),
+  UPIm: (p) => generateUPIm(p.get("Mobile")),
+  Voter: () => generateVoterID(),
+  DL: (p) => generateDL(p.get("State"), p.birthYear()),
+  RC: (p) => generateRC(p.get("State")),
+  RCBH: () => generateRCBH(),
 
   // Business IDs
-  { key: "PANi", label: "PAN (Corp)", group: "businessIds", inTable: true,
-    generate: () => generatePANi() },
-  { key: "GSTIN", label: "GSTIN", group: "businessIds", inTable: true,
-    generate: (p) => generateGSTIN(p.get("State"), p.get("PANi")) },
-  { key: "CIN", label: "CIN", group: "businessIds", inTable: true,
-    generate: (p) => generateCIN(p.get("State")) },
-  { key: "DIN", label: "DIN", group: "businessIds", inTable: true,
-    generate: () => generateDIN() },
-  { key: "LLPIN", label: "LLPIN", group: "businessIds", inTable: true,
-    generate: () => generateLLPIN() },
-  { key: "TAN", label: "TAN", group: "businessIds", inTable: true,
-    generate: () => generateTAN() },
-];
+  PANi: () => generatePANi(),
+  GSTIN: (p) => generateGSTIN(p.get("State"), p.get("PANi")),
+  CIN: (p) => generateCIN(p.get("State")),
+  DIN: () => generateDIN(),
+  LLPIN: () => generateLLPIN(),
+  TAN: () => generateTAN(),
+};
+
+export const FIELDS: FieldDef[] = FIELD_META.map((meta) => ({
+  ...meta,
+  generate: GENERATORS[meta.key],
+}));
 
 export const FIELDS_BY_KEY = Object.fromEntries(
   FIELDS.map((field) => [field.key, field])
 ) as Record<FieldKey, FieldDef>;
 
-export function isFieldKey(value: unknown): value is FieldKey {
-  return typeof value === "string" && value in FIELDS_BY_KEY;
-}
-
-/** Checkbox state sent by the table tab, e.g. { EmailValue: true, ... } */
-export type FieldSelection = Partial<Record<`${FieldKey}Value`, boolean>>;
-
 /** Table fields the user ticked, in table order */
 export function selectedTableFields(selection: FieldSelection): FieldDef[] {
   return FIELDS.filter(
-    (field) => field.inTable && selection[`${field.key}Value`] === true
+    (field) => field.inTable && selection[selectionKey(field.key)] === true
   );
 }
 

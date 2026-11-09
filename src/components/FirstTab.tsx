@@ -1,7 +1,7 @@
 import * as React from "react";
 import DataButton from "./DataButton";
 
-const FirstTab = ({ onClick }) => {
+const FirstTab = ({ onClick, onFillByName }) => {
   const [selected, setSelected] = React.useState("Random");
   const [openAccordion, setOpenAccordion] = React.useState("Personal Details");
 
@@ -44,6 +44,18 @@ const FirstTab = ({ onClick }) => {
     <>
       <div className="tabcontent">
         <div className="tab-container">
+          <div className="smart-fill">
+            <button
+              className="button-large smart-fill-button"
+              onClick={() => onFillByName(selected)}
+            >
+              Fill by layer names
+            </button>
+            <p className="smart-fill-hint">
+              Select a frame or cards. Text layers named "Email", "Phone",
+              "PAN"… get one matching person per card.
+            </p>
+          </div>
           <p
             style={{
               textAlign: "center",

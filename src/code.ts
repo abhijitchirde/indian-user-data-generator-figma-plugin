@@ -2,6 +2,7 @@
 //abhijitchirde.com
 
 import {
+  fieldForLayerName,
   FieldSelection,
   generateRecords,
   isFieldKey,
@@ -9,6 +10,7 @@ import {
   recordsToCSV,
   selectedTableFields,
 } from "./fields";
+import { planFillByName } from "./functions/fillByName";
 import { loadTableFonts, writeText, WriteTally } from "./functions/fonts";
 import {
   addRegenerateButton,
@@ -78,6 +80,10 @@ async function handleMessage(msg) {
     await fillSelection(msg.data.inputValue, msg.data.profDomain);
   }
 
+  if (msg.type === "fill-by-name") {
+    await fillByLayerNames(msg.data?.profDomain);
+  }
+
   if (msg.type === "generate-table") {
     const count = parseUserCount(msg.data.noOfUsers, MAX_TABLE_USERS);
     if (count !== null) {
@@ -145,6 +151,53 @@ async function fillSelection(fieldKey: unknown, profDomain?: string) {
 
   const notes = tally.notes();
   if (notes) figma.notify(notes.trim(), { timeout: 4000 });
+}
+
+/**
+ * Fills text layers whose names match a field ("Email", "Phone", "PAN"...).
+ * Each selected frame/card is one person; containers holding several cards
+ * are split so every card gets its own person (see fillByName.ts).
+ */
+async function fillByLayerNames(profDomain?: string) {
+  const selection = figma.currentPage.selection;
+  if (selection.length === 0) {
+    figma.notify("Select frames, cards or text layers to fill", {
+      timeout: 2000,
+    });
+    return;
+  }
+
+  const groups = planFillByName(selection, fieldForLayerName);
+  if (groups.length === 0) {
+    figma.notify(
+      'No text layers with matching names. Rename layers to e.g. "Email", "Phone" or "PAN".',
+      { timeout: 4000 }
+    );
+    return;
+  }
+
+  const tally = new WriteTally();
+  for (const group of groups) {
+    const person = new Person({ profDomain });
+    for (const { node, field } of group.texts) {
+      const text = node as TextNode;
+      const status = await writeText(text, person.get(field));
+      tally.add(status);
+      if (status !== "failed") tagTextField(text, field, profDomain);
+    }
+    if (group.scope) {
+      tagPersonScope(group.scope);
+      addRegenerateButton(group.scope);
+    }
+  }
+
+  const people = groups.length;
+  figma.notify(
+    `Filled ${tally.updated} layer${tally.updated === 1 ? "" : "s"} for ${people} ${
+      people === 1 ? "person" : "people"
+    }.${tally.notes()}`,
+    { timeout: 3000 }
+  );
 }
 
 // ============================================================================

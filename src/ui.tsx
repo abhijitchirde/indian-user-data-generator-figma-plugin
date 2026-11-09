@@ -52,6 +52,13 @@ function App() {
     setCurrentTab(input);
   };
 
+  const onFillByName = (profDomain) => {
+    parent.postMessage(
+      { pluginMessage: { type: "fill-by-name", data: { profDomain } } },
+      "*"
+    );
+  };
+
   const onGenerate = (inputValue, profDomain) => {
     parent.postMessage(
       {
@@ -108,7 +115,7 @@ function App() {
       <Tabs tabID={getTab} />
 
       {currentTab === "1" ? (
-        <FirstTab onClick={onGenerate} />
+        <FirstTab onClick={onGenerate} onFillByName={onFillByName} />
       ) : (
         <SecondTab
           onClick={onCreateTable}

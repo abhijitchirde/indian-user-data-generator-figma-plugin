@@ -9,7 +9,7 @@ someone has tried them in the Figma app.
 
 Status legend: ✅ done · 🚧 in progress · ⏳ not started
 
-**Working agreement**
+## Working agreement
 
 - One commit per feature. Each commit passes typecheck, tests and build on its own.
 - The tracker below is updated in the same commit as the feature.
@@ -63,8 +63,8 @@ Status legend: ✅ done · 🚧 in progress · ⏳ not started
 
 - [x] 3.1 "Regenerate data" button in the properties panel (relaunch data)
 - [x] 3.2 Table columns tagged as one person each
-- [ ] 3.3 Fill by layer name
-- [ ] 3.4 Fill repeated components (one person per selected instance/frame)
+- [x] 3.3 Fill by layer name
+- [x] 3.4 Fill repeated components (one person per selected instance/frame)
 - [ ] 3.5 "Regenerate selection" button in the plugin UI
 
 ### Phase 4 checklist: Data realism
@@ -176,10 +176,21 @@ DL year ≥ DoB year + 18, address contains the person's city/state/PIN). Run wi
 text nodes are grouped by their nearest ancestor with that marker. Each group gets one new
 `Person`, so a regenerated column stays consistent. Untagged layers are each their own person.
 
-**3.3–3.4 Fill by layer name.** Add `aliases: string[]` to each `FieldDef` (`"email"`, `"e-mail"`,
-`"phone"`, `"mobile"`, `"aadhaar"`...). Selecting a frame/instance fills matching text layers by
-normalized layer name from one `Person` per selected node, tags the node as a person scope,
-and attaches relaunch data, so 3.1 works for it automatically.
+**3.3–3.4 Fill by layer name.** Field descriptions moved to `src/fieldMeta.ts` (no dataset
+import, so the UI can use it later), each with `aliases` (`"e-mail"`, `"phone number"`,
+`"aadhaar"`, `"gst no"`...). Names are normalized (lowercase, letters and digits only), and a
+test makes sure no name maps to two fields. `planFillByName` (pure, in `fillByName.ts`) decides
+who is who:
+
+- Each selected text layer is its own person. A selected frame/card/instance is one person.
+- If a container holds the same field more than once (a list of cards), it is split by
+  child, so every card gets its own person. Loose text layers next to the cards share one person.
+- Text layers still named after their content (`autoRename`) are skipped. A label showing
+  "Email" is auto-named "Email" and must not be overwritten. Only renamed layers are filled.
+
+Each card is tagged as a person scope and gets relaunch data, so 3.1's button regenerates it
+as one consistent person. UI: a "Fill by layer names" card at the top of the first tab, using
+the profession domain from the dropdown.
 
 **3.5** New `regenerate` UI message that reuses the same function as the relaunch command.
 
@@ -230,4 +241,10 @@ Import `manifest.json` via *Plugins → Development → Import plugin from manif
 - [ ] Select several filled layers: button still appears (multi-selection)
 - [ ] Select a generated table: regenerate replaces every column, each column stays consistent
       (email/UPI match the name, address matches city/state/PIN)
+- [ ] Fill by layer names: a card with layers renamed "Name", "Email", "Phone", "Address"
+      gets one matching person (email matches the name)
+- [ ] Fill by layer names: a label whose text is "Email" (auto-named) is left alone
+- [ ] Fill by layer names: select a list frame with several cards, so each card gets a different person
+- [ ] Fill by layer names inside component instances
+- [ ] After fill by layer names, select the card: "Regenerate data" refreshes it as one person
 - [ ] Repeat the fill and table checks in FigJam, Slides and Buzz

@@ -217,6 +217,31 @@ main {
   text-align: center;
 }
 
+/* Fill by layer names */
+
+.smart-fill {
+  display: flex;
+  flex-direction: column;
+  gap: var(--figma-space-xs);
+  margin: 0 var(--figma-space-xs) var(--figma-space-md);
+  padding: var(--figma-space-sm);
+  border: 1px solid var(--figma-color-border);
+  border-radius: var(--figma-radius-md);
+  background-color: var(--figma-color-bg-secondary);
+}
+
+.smart-fill-button {
+  flex: none;
+  width: 100%;
+}
+
+.smart-fill-hint {
+  margin: 0;
+  font-size: var(--figma-font-size-xs);
+  line-height: 1.4;
+  color: var(--figma-color-text-secondary);
+}
+
 .button-group {
   text-align: center;
   padding: 0 var(--figma-space-sm) var(--figma-space-sm);

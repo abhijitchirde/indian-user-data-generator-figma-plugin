@@ -28,6 +28,8 @@ import { setFont, setFontLight } from "./functions/utils";
 const MAX_TABLE_USERS = 200;
 const MAX_EXPORT_USERS = 10000;
 
+const THEME_PREF_KEY = "themePreference";
+
 var generateTableLabelWidth = 78;
 var generateTableDataWidth = 275;
 var generateTableCellHeight = 26;
@@ -40,8 +42,9 @@ if (figma.command === REGENERATE_COMMAND) {
   );
 } else {
   //Show UI on figma canvas
-  // 700 fits the tallest group (Personal IDs) open in both tabs without scrolling
-  figma.showUI(__html__, { width: 360, height: 700 });
+  // 700 fits the tallest group (Personal IDs) open in both tabs without scrolling.
+  // themeColors adds a figma-light / figma-dark class to the UI's <html> (used by ui.css).
+  figma.showUI(__html__, { width: 360, height: 700, themeColors: true });
   figma.ui.onmessage = handleMessage;
 }
 
@@ -67,15 +70,14 @@ function parseUserCount(value: unknown, max: number): number | null {
 
 //Receiving the button inputs from UI
 async function handleMessage(msg) {
-  if (msg.type === "get-theme") {
-    // Send current Figma theme to UI
-    // Figma and Slides use light theme, FigJam and Buzz use dark theme
-    const isLightTheme =
-      figma.editorType === "figma" || figma.editorType === "slides";
-    figma.ui.postMessage({
-      type: "theme-changed",
-      theme: isLightTheme ? "light" : "dark",
-    });
+  // Theme preference (Auto / Light / Dark from the footer), saved per user
+  if (msg.type === "get-theme-pref") {
+    const value = await figma.clientStorage.getAsync(THEME_PREF_KEY);
+    figma.ui.postMessage({ type: "theme-pref", value: value ?? "auto" });
+  }
+
+  if (msg.type === "set-theme-pref") {
+    await figma.clientStorage.setAsync(THEME_PREF_KEY, msg.value);
   }
 
   if (msg.type === "generate-random") {

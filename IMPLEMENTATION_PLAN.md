@@ -34,7 +34,7 @@ Status legend: ✅ done · 🚧 in progress · ⏳ not started
 | 2 | Field registry & code health | 🚧 |
 | 3 | Regenerate & smarter filling | ✅ (Figma QA pending) |
 | 4 | Data realism | ⏳ |
-| 5 | UI, theming & quick actions | ⏳ |
+| 5 | UI, theming & quick actions | 🚧 |
 
 ### Phase 1 checklist: Bug fixes
 
@@ -77,8 +77,8 @@ Status legend: ✅ done · 🚧 in progress · ⏳ not started
 
 ### Phase 5 checklist: UI, theming & quick actions
 
-- [ ] 5.1 `themeColors: true` and Figma's theme variables; simplify `useFigmaTheme`
-- [ ] 5.2 Persist UI choices with `figma.clientStorage`
+- [x] 5.1 `themeColors: true` and Figma's theme; footer and theme button from the other plugins
+- [ ] 5.2 Persist UI choices with `figma.clientStorage` (theme done; selections, user count, domain to do)
 - [ ] 5.3 Copy-to-clipboard next to JSON/CSV download
 - [ ] 5.4 Quick actions via manifest `parameters`
 - [ ] 5.5 Seeded randomness
@@ -221,8 +221,14 @@ at 360×620 with headless Edge. The window was then raised to 360×700, so the t
 
 ### Phase 5: UI, theming & quick actions
 
-- **5.1** `figma.showUI(__html__, { themeColors: true, ... })`. Remove the editor-type theme guess and
-  the duplicated `--figma-color-*` definitions in `ui.css`. Keep the manual toggle as an override only.
+- **5.1** Done together with the footer from the other plugins (desi-ipsum).
+  `showUI(..., { themeColors: true })` replaces the editor-type guess (FigJam/Buzz = dark).
+  This plugin keeps its own palette. The tokens sit on `html:root`, which is more specific than
+  Figma's injected values, and Figma's `figma-dark` class only switches to the dark palette.
+  Footer: ⚠️ disclaimer and theme icon buttons on the left, credit on the right. The theme button
+  cycles 🌗 Auto (follows Figma) → ☀️ Light → 🌙 Dark via `html[data-theme]`, saved with
+  `figma.clientStorage` (`themePreference`). `useFigmaTheme` (two separate copies of the
+  state, in `ui.tsx` and the toggle) is replaced by `useThemePreference`.
 - **5.2** `figma.clientStorage.setAsync("prefs", {...})` on change. Send to the UI on open.
 - **5.3** `navigator.clipboard` is blocked in plugin iframes, so use a hidden `<textarea>` + `document.execCommand("copy")`.
 - **5.4** Manifest `parameters` with suggestions from the registry. Handle `figma.on("run", ...)`.
@@ -273,4 +279,8 @@ Import `manifest.json` via *Plugins → Development → Import plugin from manif
 - [ ] Both tabs look and behave as before (same buttons, checkboxes, order, counts)
 - [ ] Table tab: change the profession domain, then click "Default": dropdown shows "Random" again
 - [ ] Accordions open/close with Tab + Enter/Space
+- [ ] Footer: ⚠️ shows the disclaimer; theme button cycles Auto → Light → Dark with matching
+      icons and tooltips
+- [ ] Theme Auto follows Figma's light/dark theme (switch Figma's theme while the plugin is open)
+- [ ] Theme choice is remembered after closing and reopening the plugin
 - [ ] Repeat the fill and table checks in FigJam, Slides and Buzz

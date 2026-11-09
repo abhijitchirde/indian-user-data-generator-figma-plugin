@@ -1,5 +1,12 @@
-/* Figma Design System Tokens */
-:root {
+/*
+ * Design tokens (this plugin's own palette).
+ * showUI({ themeColors: true }) makes Figma inject its own --figma-color-* values on :root
+ * and add a figma-light / figma-dark class to <html>. html:root is more specific than
+ * Figma's values, so the palette below always wins; the class is only used to pick
+ * light or dark. Footer theme button: Auto (follows Figma) → Light → Dark, via
+ * html[data-theme] (no attribute = Auto).
+ */
+html:root {
   /* Light theme colors */
   /* --figma-color-bg: #f8fafc; */
   --figma-color-bg: #f8fafc;
@@ -58,8 +65,10 @@
   --figma-radius-xl: 8px;
 }
 
-/* Dark theme overrides */
-[data-theme="dark"] {
+/* Dark theme: Figma is dark and the user didn't pick Light, or the user picked Dark */
+html.figma-dark:not([data-theme="light"]),
+html[data-theme="dark"] {
+  color-scheme: dark;
   --figma-color-bg: #2c2c2c;
   --figma-color-bg-secondary: #383838;
   --figma-color-bg-tertiary: #484848;
@@ -734,12 +743,13 @@ div label input:checked + span {
 
 /* Footer styling */
 
+/* Same footer as the other plugins (desi-ipsum): icon buttons left, credit right */
 .bottom-wrapper {
   position: fixed;
   bottom: 0;
   top: auto;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  display: flex;
+  justify-content: space-between;
   width: 100%;
   background-color: var(--figma-color-bg-secondary);
   padding: 0;
@@ -749,20 +759,11 @@ div label input:checked + span {
 .disclaimer-container {
   display: flex;
   flex-direction: row;
-  justify-content: flex-start;
-  padding-left: var(--figma-space-md);
-  padding-right: var(--figma-space-lg);
-  width: auto;
-  align-items: center;
-}
-
-.theme-toggle-container {
-  display: flex;
-  flex-direction: row;
   justify-content: center;
   align-items: center;
   padding: 0 var(--figma-space-sm);
   width: auto;
+  gap: 0.25rem;
 }
 
 .credit-container {
@@ -773,42 +774,34 @@ div label input:checked + span {
   width: auto;
 }
 
-.disclaimer-button {
-  padding: 4px 8px;
-  font-size: var(--figma-font-size-xs);
+/* Small square icon button (footer) */
+.icon-button {
+  font-size: 0.7rem;
+  font-weight: 400;
+  padding: 4px;
   border: 1px solid var(--figma-color-border);
-  border-radius: 4px;
   background-color: var(--figma-color-bg);
+  border-radius: 4px;
   color: var(--figma-color-text);
   cursor: pointer;
   transition: all 0.2s ease;
-  min-width: 20px;
+  width: 25px;
+  height: 25px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--figma-font-family);
+  gap: 0.2rem;
+  white-space: nowrap;
 }
 
-.disclaimer-button:hover {
+.icon-button:hover {
   background-color: var(--figma-color-bg-secondary);
   border-color: var(--figma-color-border-strong);
-  transition-duration: 0.2s;
 }
 
-.disclaimer-text {
-  border: none;
-  font-size: var(--figma-font-size-xs);
-  background: none;
-  color: var(--figma-color-text-tertiary);
-  cursor: pointer;
-  display: inline-block;
-  padding: 0;
-  transition: all 0.2s ease;
-}
-
-.disclaimer-text:hover {
-  color: var(--figma-color-text-secondary);
-  transition-duration: 0.2s;
+.icon-button:active {
+  background-color: var(--figma-color-bg-tertiary);
+  border-color: var(--figma-color-bg-brand);
 }
 
 .credit-text {

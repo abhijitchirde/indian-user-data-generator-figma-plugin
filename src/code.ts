@@ -14,6 +14,7 @@ import {
 } from "./fields";
 import { planFillByName } from "./functions/fillByName";
 import { loadTableFonts, writeText, WriteTally } from "./functions/fonts";
+import { centeredAt, findFreeSpot, isInside, Rect } from "./functions/placement";
 import {
   addRegenerateButton,
   describeRegenerateResult,
@@ -444,10 +445,25 @@ async function generateTable(
   tableFrame.layoutMode = "NONE";
   addRegenerateButton(tableFrame);
 
-  // Add table to canvas and set viewport focus
+  // Place it in the middle of what the user is looking at, to the right of anything
+  // already there, instead of at (0, 0) on top of existing designs
   figma.currentPage.appendChild(tableFrame);
+  const obstacles = figma.currentPage.children
+    .filter((node) => node !== tableFrame)
+    .map((node) => node.absoluteBoundingBox)
+    .filter((box): box is Rect => box !== null);
+  const spot = findFreeSpot(
+    centeredAt(figma.viewport.center, tableFrame.width, tableFrame.height),
+    obstacles
+  );
+  tableFrame.x = spot.x;
+  tableFrame.y = spot.y;
   figma.currentPage.selection = [tableFrame];
-  figma.viewport.scrollAndZoomIntoView([tableFrame]);
+
+  // Only move the view if the table isn't fully visible where it landed
+  if (!isInside(spot, figma.viewport.bounds)) {
+    figma.viewport.scrollAndZoomIntoView([tableFrame]);
+  }
 
   figma.notify(`Table of ${userCount} users generated successfully.`, {
     timeout: 2500,

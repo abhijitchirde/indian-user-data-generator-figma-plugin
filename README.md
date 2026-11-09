@@ -53,7 +53,7 @@ The plugin follows your Figma app's **light or dark theme** automatically, or yo
 1. Open the "Create user sets" tab in the plugin
 2. Select the fields you need using the checkboxes (basic fields are pre-selected)
 3. Enter the number of users
-4. Click "Add table to Figma" (up to 200 users), or get the same users as a JSON or CSV download, or copy them as JSON or for spreadsheets (up to 10,000). "For spreadsheets" pastes straight into Google Sheets or Excel, one value per cell
+4. Click "Add table to Figma" (up to 200 users; the table appears in the middle of your view, next to your existing designs, never on top of them), or get the same users as a JSON or CSV download, or copy them as JSON or for spreadsheets (up to 10,000). "For spreadsheets" pastes straight into Google Sheets or Excel, one value per cell
 
 ### In FigJam
 

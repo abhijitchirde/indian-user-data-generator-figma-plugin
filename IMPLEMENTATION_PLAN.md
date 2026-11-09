@@ -86,6 +86,7 @@ Deferred: Abhijit chose to do Phase 5 first.
 - [x] 5.3 Copy-to-clipboard next to JSON/CSV download
 - [x] 5.4 Quick actions via manifest `parameters`
 - [ ] ~~5.5 Seeded randomness~~ (dropped: built, then removed at Abhijit's request)
+- [x] 5.7 New tables go in the middle of the current view, beside existing layers (not at 0,0)
 - [ ] 5.6 Auto-layout canvas table, "rows = users" layout, native FigJam table
 
 ---
@@ -263,6 +264,11 @@ at 360×620 with headless Edge. The window was then raised to 360×700, so the t
   reverted because the feature isn't needed. Revert the revert commit to bring it back.
 - **5.6** Table built with auto layout (hug height, fixed column width, wrapped text). Option for
   users as rows. `figma.createTable()` when `figma.editorType === "figjam"`.
+- **5.7** Requested by Abhijit before 5.6. Tables used to land at (0, 0), on top of whatever was
+  there, and the view jumped to them. Now `findFreeSpot` (`placement.ts`, pure and tested) starts
+  from a rectangle centered on `figma.viewport.center`. If it overlaps any top-level layer on the
+  page, with 80px to spare, it moves right past those layers and repeats until clear, keeping
+  the same height. The view only scrolls/zooms if the table isn't fully visible where it landed.
 
 ---
 
@@ -286,6 +292,8 @@ Import `manifest.json` via *Plugins → Development → Import plugin from manif
 - [ ] Fill a text layer whose font is missing: switches to Inter at the closest weight, notification shown
 - [ ] Nothing selected / only non-text selected: one "select text layers" notification
 - [ ] Table with 1, 10 and 200 users; 201 users is rejected with a message
+- [ ] New table appears in the middle of the current view; on an empty area the view doesn't move
+- [ ] New table next to existing frames: it lands to the right of them, never on top
 - [ ] JSON and CSV export (CSV opens in Excel/Sheets with addresses in one column)
 - [ ] Select a filled text layer: "Regenerate data" button appears in the properties panel and works
 - [ ] Select several filled layers: button still appears (multi-selection)

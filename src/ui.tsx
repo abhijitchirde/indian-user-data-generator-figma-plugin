@@ -5,13 +5,42 @@ import BottomSection from "./components/BottomSection";
 import FirstTab from "./components/FirstTab";
 import SecondTab from "./components/SecondTab";
 import Tabs from "./components/Tabs";
-import { useFigmaTheme } from "./hooks/useFigmaTheme";
+import { usePrefs } from "./hooks/usePrefs";
 
 declare function require(path: string): any;
 
+/**
+ * Copies text to the clipboard. Figma blocks navigator.clipboard inside plugin windows,
+ * so a hidden textarea + execCommand("copy") comes first; the Clipboard API is the fallback.
+ */
+async function copyText(text: string): Promise<boolean> {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+  let ok = false;
+  try {
+    ok = document.execCommand("copy");
+  } catch {
+    ok = false;
+  }
+  document.body.removeChild(textarea);
+  if (ok) return true;
+
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function App() {
-  const [currentTab, setCurrentTab] = React.useState("1");
-  const { theme, isDark } = useFigmaTheme();
+  // Open tab, table fields, user count and domains, remembered between sessions
+  const { prefs, update } = usePrefs();
 
   React.useEffect(() => {
     // Listen for JSON and CSV data from plugin
@@ -39,6 +68,11 @@ function App() {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
+      } else if (event.data.pluginMessage?.type === "copy-ready") {
+        const { text, message } = event.data.pluginMessage;
+        copyText(text).then((ok) =>
+          parent.postMessage({ pluginMessage: { type: "copy-done", ok, message } }, "*")
+        );
       }
     };
 
@@ -48,8 +82,15 @@ function App() {
     };
   }, []);
 
-  const getTab = (input) => {
-    setCurrentTab(input);
+  const onFillByName = (profDomain) => {
+    parent.postMessage(
+      { pluginMessage: { type: "fill-by-name", data: { profDomain } } },
+      "*"
+    );
+  };
+
+  const onRegenerate = () => {
+    parent.postMessage({ pluginMessage: { type: "regenerate-selection" } }, "*");
   };
 
   const onGenerate = (inputValue, profDomain) => {
@@ -70,7 +111,7 @@ function App() {
       {
         pluginMessage: {
           type: "generate-table",
-          data: { chkData, noOfUsers, profDomain },
+          data: { chkData, noOfUsers, profDomain, layout: prefs?.tableLayout },
         },
       },
       "*"
@@ -103,17 +144,48 @@ function App() {
     );
   };
 
+  const onCopy = (format: "json" | "tsv") => (chkData, users, profDomain) => {
+    parent.postMessage(
+      {
+        pluginMessage: {
+          type: format === "json" ? "copy-json" : "copy-tsv",
+          data: { chkData, noOfUsers: +users, profDomain },
+        },
+      },
+      "*"
+    );
+  };
+
+  // Saved choices arrive within a few milliseconds; render once they're known
+  if (!prefs) return <main />;
+
   return (
     <main>
-      <Tabs tabID={getTab} />
+      <Tabs current={prefs.tab} onChange={(tab) => update({ tab })} />
 
-      {currentTab === "1" ? (
-        <FirstTab onClick={onGenerate} />
+      {prefs.tab === "1" ? (
+        <FirstTab
+          onClick={onGenerate}
+          onFillByName={onFillByName}
+          onRegenerate={onRegenerate}
+          domain={prefs.fillDomain}
+          onDomainChange={(fillDomain) => update({ fillDomain })}
+        />
       ) : (
         <SecondTab
           onClick={onCreateTable}
           onExportJSON={onExportJSON}
           onExportCSV={onExportCSV}
+          onCopyJSON={onCopy("json")}
+          onCopyTSV={onCopy("tsv")}
+          selection={prefs.tableSelection}
+          onSelectionChange={(tableSelection) => update({ tableSelection })}
+          users={prefs.tableUsers}
+          onUsersChange={(tableUsers) => update({ tableUsers })}
+          domain={prefs.tableDomain}
+          onDomainChange={(tableDomain) => update({ tableDomain })}
+          layout={prefs.tableLayout}
+          onLayoutChange={(tableLayout) => update({ tableLayout })}
         />
       )}
 

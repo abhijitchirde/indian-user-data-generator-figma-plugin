@@ -1,5 +1,12 @@
-/* Figma Design System Tokens */
-:root {
+/*
+ * Design tokens (this plugin's own palette).
+ * showUI({ themeColors: true }) makes Figma inject its own --figma-color-* values on :root
+ * and add a figma-light / figma-dark class to <html>. html:root is more specific than
+ * Figma's values, so the palette below always wins; the class is only used to pick
+ * light or dark. Footer theme button: Auto (follows Figma) → Light → Dark, via
+ * html[data-theme] (no attribute = Auto).
+ */
+html:root {
   /* Light theme colors */
   /* --figma-color-bg: #f8fafc; */
   --figma-color-bg: #f8fafc;
@@ -58,8 +65,10 @@
   --figma-radius-xl: 8px;
 }
 
-/* Dark theme overrides */
-[data-theme="dark"] {
+/* Dark theme: Figma is dark and the user didn't pick Light, or the user picked Dark */
+html.figma-dark:not([data-theme="light"]),
+html[data-theme="dark"] {
+  color-scheme: dark;
   --figma-color-bg: #2c2c2c;
   --figma-color-bg-secondary: #383838;
   --figma-color-bg-tertiary: #484848;
@@ -215,6 +224,68 @@ main {
 
 .buttons-list {
   text-align: center;
+}
+
+/* Fill by layer names */
+
+.smart-fill {
+  display: flex;
+  flex-direction: column;
+  gap: var(--figma-space-sm);
+  flex-shrink: 0;
+  margin: 0 var(--figma-space-xs) var(--figma-space-sm);
+  padding: var(--figma-space-sm);
+  border: 1px solid var(--figma-color-border);
+  border-radius: var(--figma-radius-md);
+  background-color: var(--figma-color-bg-secondary);
+}
+
+/* Two classes so it wins over .button-large's flex: 1, defined further down */
+.smart-fill .smart-fill-button {
+  flex: none;
+  width: 100%;
+}
+
+.smart-fill-hint {
+  margin: 0;
+  font-size: var(--figma-font-size-xs);
+  line-height: 1.4;
+  color: var(--figma-color-text-secondary);
+}
+
+/* First tab: the data-type groups scroll, so the regenerate section stays at the bottom */
+.first-tab > p {
+  flex-shrink: 0;
+}
+
+.first-tab .buttons-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.regenerate-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--figma-space-xs);
+  flex-shrink: 0;
+  margin: var(--figma-space-sm) var(--figma-space-xs) 0;
+  padding-top: var(--figma-space-sm);
+  border-top: 1px solid var(--figma-color-border);
+}
+
+/* Two classes so it wins over .button-json's fixed width, defined further down */
+.regenerate-section .regenerate-button {
+  flex: none;
+  width: 100%;
+  min-width: 0;
+}
+
+.first-tab .buzz-note {
+  margin: var(--figma-space-sm) var(--figma-space-xs) 0;
+  font-size: var(--figma-font-size-xs);
+  line-height: 1.4;
+  color: var(--figma-color-text-secondary);
 }
 
 .button-group {
@@ -456,7 +527,7 @@ div label input:checked + span {
 
 .fixed-bottom-section {
   position: fixed;
-  bottom: 48px; /* Height of bottom-wrapper (approximately) */
+  bottom: 40px; /* Height of .bottom-wrapper (the footer) */
   left: 0;
   right: 0;
   width: 100%;
@@ -506,6 +577,80 @@ div label input:checked + span {
   border-radius: var(--figma-radius-lg);
   background-color: var(--figma-color-bg);
   overflow: hidden;
+}
+
+/* "Number of users" and "Users as" labels share a width, so the controls line up */
+.separate-button-div .input-label {
+  min-width: 7.2rem;
+  text-align: right;
+}
+
+/* "Users as [Columns | Rows]": same width as the users stepper above it */
+.segmented {
+  display: inline-flex;
+  width: calc(8.5rem + 2px);
+  margin-left: 2%;
+  margin-right: 3.2%;
+  padding: 2px;
+  gap: 2px;
+  border: 1px solid var(--figma-color-border-strong);
+  border-radius: var(--figma-radius-lg);
+  background-color: var(--figma-color-bg-secondary);
+}
+
+.segmented-option {
+  flex: 1;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--figma-radius-md);
+  background: none;
+  font-family: var(--figma-font-family);
+  font-size: var(--figma-font-size-xs);
+  color: var(--figma-color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.segmented-option:hover:not(.is-selected) {
+  color: var(--figma-color-text);
+}
+
+.segmented-option.is-selected {
+  background-color: var(--figma-color-bg);
+  color: var(--figma-color-text-brand);
+  font-weight: 600;
+  box-shadow: var(--figma-shadow-small);
+}
+
+/* "Copy: JSON · For spreadsheets" under the export buttons */
+.copy-links {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--figma-space-xs);
+  font-size: var(--figma-font-size-xs);
+  color: var(--figma-color-text-tertiary);
+}
+
+.copy-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: var(--figma-font-family);
+  font-size: var(--figma-font-size-xs);
+  color: var(--figma-color-text-secondary);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.copy-link:hover:not(:disabled) {
+  color: var(--figma-color-text);
+}
+
+.copy-link:disabled {
+  color: var(--figma-color-text-disabled);
+  cursor: not-allowed;
 }
 
 .user-input-button {
@@ -672,13 +817,16 @@ div label input:checked + span {
 
 /* Footer styling */
 
+/* Same footer as the other plugins (desi-ipsum): icon buttons left, credit right */
 .bottom-wrapper {
   position: fixed;
   bottom: 0;
   top: auto;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   width: 100%;
+  height: 40px; /* .fixed-bottom-section sits right on top of it */
   background-color: var(--figma-color-bg-secondary);
   padding: 0;
   border-top: 1px solid var(--figma-color-border);
@@ -687,20 +835,11 @@ div label input:checked + span {
 .disclaimer-container {
   display: flex;
   flex-direction: row;
-  justify-content: flex-start;
-  padding-left: var(--figma-space-md);
-  padding-right: var(--figma-space-lg);
-  width: auto;
-  align-items: center;
-}
-
-.theme-toggle-container {
-  display: flex;
-  flex-direction: row;
   justify-content: center;
   align-items: center;
   padding: 0 var(--figma-space-sm);
   width: auto;
+  gap: 0.25rem;
 }
 
 .credit-container {
@@ -711,42 +850,34 @@ div label input:checked + span {
   width: auto;
 }
 
-.disclaimer-button {
-  padding: 4px 8px;
-  font-size: var(--figma-font-size-xs);
+/* Small square icon button (footer) */
+.icon-button {
+  font-size: 0.7rem;
+  font-weight: 400;
+  padding: 4px;
   border: 1px solid var(--figma-color-border);
-  border-radius: 4px;
   background-color: var(--figma-color-bg);
+  border-radius: 4px;
   color: var(--figma-color-text);
   cursor: pointer;
   transition: all 0.2s ease;
-  min-width: 20px;
+  width: 25px;
+  height: 25px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--figma-font-family);
+  gap: 0.2rem;
+  white-space: nowrap;
 }
 
-.disclaimer-button:hover {
+.icon-button:hover {
   background-color: var(--figma-color-bg-secondary);
   border-color: var(--figma-color-border-strong);
-  transition-duration: 0.2s;
 }
 
-.disclaimer-text {
-  border: none;
-  font-size: var(--figma-font-size-xs);
-  background: none;
-  color: var(--figma-color-text-tertiary);
-  cursor: pointer;
-  display: inline-block;
-  padding: 0;
-  transition: all 0.2s ease;
-}
-
-.disclaimer-text:hover {
-  color: var(--figma-color-text-secondary);
-  transition-duration: 0.2s;
+.icon-button:active {
+  background-color: var(--figma-color-bg-tertiary);
+  border-color: var(--figma-color-bg-brand);
 }
 
 .credit-text {
@@ -754,6 +885,7 @@ div label input:checked + span {
   color: var(--figma-color-text-tertiary);
   display: inline-block;
   padding: 0;
+  margin: 0;
 }
 
 a:link,

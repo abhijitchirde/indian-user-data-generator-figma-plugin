@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Indian User Data cover</title>
+    <link rel="stylesheet" href="shared.css" />
+    <link rel="stylesheet" href="icons.css" />
+    <link rel="stylesheet" href="window.css" />
+    <style>
+      .canvas {
+        width: 1920px;
+        height: 960px;
+        background: radial-gradient(60% 85% at 88% 45%, #eef2ff 0%, rgba(238, 242, 255, 0) 62%),
+          radial-gradient(45% 70% at 0% 100%, #fff1e6 0%, rgba(255, 241, 230, 0) 62%), var(--paper);
+      }
+
+      /* Faint kolam dot grid, like icon option 4 */
+      .dots {
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(circle, rgba(67, 56, 202, 0.1) 1.6px, transparent 2px);
+        background-size: 34px 34px;
+        -webkit-mask-image: radial-gradient(70% 80% at 30% 40%, #000 0%, transparent 75%);
+        mask-image: radial-gradient(70% 80% at 30% 40%, #000 0%, transparent 75%);
+      }
+
+      .left {
+        position: absolute;
+        left: 140px;
+        top: 132px;
+        width: 960px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 34px;
+      }
+      .brand .icon-wrap {
+        box-shadow: 0 18px 40px rgba(53, 39, 199, 0.28);
+      }
+      .wordmark {
+        font: 800 86px/0.98 var(--sans);
+        letter-spacing: -0.035em;
+      }
+      .tagline {
+        margin: 44px 0 0;
+        font: 400 60px/1.12 var(--serif);
+        color: var(--ink-2);
+        letter-spacing: -0.01em;
+      }
+      .tagline em {
+        font-style: italic;
+        color: var(--brand);
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 9px;
+        margin-top: 42px;
+        width: 920px;
+      }
+      .chips span {
+        font: 600 21px/1 var(--sans);
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: #fff;
+        border: 1px solid var(--line);
+        color: var(--ink-2);
+      }
+      .chips span.more {
+        background: var(--brand-tint);
+        border-color: #dfe3ff;
+        color: var(--brand);
+      }
+      .extras {
+        margin-top: 32px;
+        font: 600 24px/1.4 var(--sans);
+        color: var(--ink-3);
+      }
+      .extras b {
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      .windows {
+        position: absolute;
+        left: 1170px;
+        top: 50px;
+        width: 720px;
+        height: 880px;
+      }
+      .windows .pw {
+        position: absolute;
+      }
+      .footer {
+        position: absolute;
+        left: 140px;
+        bottom: 64px;
+        font: 600 22px/1 var(--sans);
+        color: var(--ink-3);
+        letter-spacing: 0.01em;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 1920×960 Figma Community cover. Query: ?icon=1..4 -->
+    <div class="canvas" id="canvas">
+      <div class="dots"></div>
+      <div class="left">
+        <div class="brand" id="brand"><div class="wordmark">Indian User<br />Data Generator</div></div>
+        <p class="tagline">Realistic Indian users<br />for your designs, <em>in one click.</em></p>
+        <div class="chips" id="chips"></div>
+        <div class="extras">
+          <b>Fill by layer names</b> · <b>Regenerate</b> · <b>Tables, JSON &amp; CSV</b> · <b>Quick actions</b>
+        </div>
+      </div>
+      <div class="windows" id="windows"></div>
+      <div class="footer">Works in Figma Design · FigJam · Figma Slides · Figma Buzz</div>
+    </div>
+
+    <script src="icons.js"></script>
+    <script src="samples.js"></script>
+    <script src="window.js"></script>
+    <script>
+      const icon = Number(new URLSearchParams(location.search).get("icon") || 1);
+
+      document.getElementById("brand").prepend(renderIcon(icon, 168, { rounded: true }));
+
+      // A selection of the data types, then how many more there are
+      const shown = ["FullName", "Email", "Mobile", "UrbAddress", "PIN", "UID", "PAN", "UPIn",
+        "Passport", "Voter", "DL", "RC", "GSTIN", "CIN"];
+      const byKey = Object.fromEntries(SAMPLES.fields.map((f) => [f.key, f]));
+      const chips = document.getElementById("chips");
+      const names = { UID: "Aadhaar", UPIn: "UPI ID", Pass: "Passport", UrbAddress: "Address", RC: "Vehicle RC" };
+      shown.forEach((key) => {
+        const field = byKey[key] || byKey[key === "Passport" ? "Pass" : key];
+        if (!field) return;
+        const chip = document.createElement("span");
+        chip.textContent = names[field.key] || field.shortLabel;
+        chips.appendChild(chip);
+      });
+      const more = document.createElement("span");
+      more.className = "more";
+      more.textContent = `+ ${SAMPLES.fields.length - chips.children.length} more`;
+      chips.appendChild(more);
+
+      // Two real plugin windows: "Create user sets" in dark behind, "Add to text layers" in light in front
+      const wins = document.getElementById("windows");
+      const dark = pluginWindow({ theme: "dark", icon, scale: 1.08, tab: "2" });
+      Object.assign(dark.style, { left: "250px", top: "0px" });
+      const light = pluginWindow({ theme: "light", icon, scale: 1.08, tab: "1" });
+      Object.assign(light.style, { left: "0px", top: "40px" });
+      wins.append(dark, light);
+    </script>
+  </body>
+</html>

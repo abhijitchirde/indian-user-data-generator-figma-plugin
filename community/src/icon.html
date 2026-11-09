@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Indian User Data icon</title>
+    <link rel="stylesheet" href="shared.css" />
+    <link rel="stylesheet" href="icons.css" />
+    <style>
+      body { background: transparent; }
+    </style>
+  </head>
+  <body>
+    <!-- Single icon, full-bleed, at the top-left. Query: ?option=1..4&size=128 -->
+    <script src="icons.js"></script>
+    <script>
+      const params = new URLSearchParams(location.search);
+      document.body.appendChild(renderIcon(params.get("option") || 1, Number(params.get("size") || 128)));
+    </script>
+  </body>
+</html>

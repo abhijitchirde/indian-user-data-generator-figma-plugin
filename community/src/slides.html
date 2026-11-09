@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Indian User Data slides</title>
+    <link rel="stylesheet" href="shared.css" />
+    <link rel="stylesheet" href="icons.css" />
+    <link rel="stylesheet" href="slides.css" />
+    <style>
+      .slide-body {
+        display: none;
+      }
+      .slide-body.on {
+        display: block;
+      }
+      .mono {
+        font-family: var(--mono);
+      }
+
+      /* ---------- Slide 1: every data type ---------- */
+      .groups {
+        margin-top: 54px;
+        display: grid;
+        /* minmax(0, …) lets long values shrink to an ellipsis instead of widening the grid */
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr);
+        gap: 26px;
+        align-items: start;
+      }
+      .group {
+        padding: 26px 28px 18px;
+      }
+      .group .label {
+        margin-bottom: 12px;
+      }
+      .row {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 11px 0;
+        border-top: 1px solid #f0eeea;
+      }
+      .row:first-of-type {
+        border-top: 0;
+      }
+      .row .k {
+        font: 600 16px/1 var(--sans);
+        color: var(--ink-3);
+      }
+      .row .v {
+        font: 600 21px/1.25 var(--sans);
+        color: var(--ink);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .row .v.mono {
+        font: 500 20px/1.25 var(--mono);
+        letter-spacing: -0.01em;
+      }
+
+      /* ---------- Slide 2: fill by layer names ---------- */
+      .fill-row {
+        margin-top: 64px;
+        display: grid;
+        grid-template-columns: 380px 1fr;
+        gap: 56px;
+        align-items: start;
+      }
+      .layers {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 18px 0;
+        font: 500 20px/1 var(--sans);
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+      }
+      .layers .head {
+        padding: 0 22px 14px;
+        font: 700 16px/1 var(--sans);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+      }
+      .layer-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 11px 22px;
+        color: var(--ink-2);
+      }
+      .layer-row.frame {
+        background: #e8f2ff;
+        color: var(--ink);
+        font-weight: 700;
+      }
+      .layer-row.child {
+        padding-left: 56px;
+      }
+      .layer-row .glyph {
+        width: 22px;
+        text-align: center;
+        color: var(--ink-3);
+        font: 600 18px/1 var(--mono);
+      }
+      .layer-row.frame .glyph {
+        color: #2f80ff;
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 40px;
+        padding: 6px 6px 0 0; /* room for the selection outlines */
+      }
+      .person {
+        padding: 26px 26px 22px;
+        position: relative;
+      }
+      .person.selected {
+        outline: 3px solid #2f80ff;
+        outline-offset: 6px;
+      }
+      .person .top {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .avatar {
+        width: 62px;
+        height: 62px;
+        border-radius: 50%;
+        flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font: 800 24px/1 var(--sans);
+        color: #fff;
+      }
+      .person .name {
+        font: 800 26px/1.15 var(--sans);
+        letter-spacing: -0.01em;
+      }
+      .person .prof {
+        margin-top: 4px;
+        font: 500 18px/1.2 var(--sans);
+        color: var(--ink-3);
+      }
+      .person .facts {
+        margin-top: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .fact {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .fact .k {
+        font: 700 13px/1 var(--sans);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+      }
+      .fact .v {
+        font: 600 19px/1.3 var(--sans);
+        color: var(--ink-2);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .fact .v.mono {
+        font: 500 18px/1.3 var(--mono);
+      }
+      .match {
+        color: var(--brand);
+        background: var(--brand-tint);
+        border-radius: 5px;
+        padding: 0 3px;
+      }
+
+      /* ---------- Slide 3: user sets ---------- */
+      .sets-row {
+        margin-top: 60px;
+        display: grid;
+        grid-template-columns: 1fr 560px;
+        gap: 44px;
+        align-items: start;
+      }
+      .table-stage {
+        padding: 34px;
+        border-radius: 22px;
+        background: repeating-linear-gradient(0deg, #f1f0ec 0 1px, transparent 1px 28px),
+          repeating-linear-gradient(90deg, #f1f0ec 0 1px, transparent 1px 28px), #f9f8f5;
+        border: 1px solid var(--line);
+      }
+      table.ud {
+        border-collapse: collapse;
+        background: #fff;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+        font-family: "Roboto", var(--sans);
+      }
+      table.ud td {
+        border: 1px solid #94b2db;
+        padding: 11px 14px;
+        font-size: 18px;
+        line-height: 1.3;
+        color: #333;
+        vertical-align: middle;
+      }
+      table.ud tr:first-child td {
+        background: #dbecff;
+        font-size: 16px;
+        font-weight: 600;
+        color: #334;
+      }
+      table.ud td:first-child {
+        background: #f9fbff;
+        font-size: 16px;
+        color: #556;
+        white-space: nowrap;
+      }
+      table.ud tr:first-child td:first-child {
+        background: #dbecff;
+      }
+      table.ud td.addr {
+        width: 270px;
+      }
+      .side {
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+      }
+      .code {
+        background: #16181d;
+        color: #e6e6e6;
+        border-radius: 20px;
+        padding: 26px 30px;
+        font: 500 18px/1.55 var(--mono);
+        box-shadow: 0 24px 50px rgba(15, 23, 42, 0.22);
+        white-space: pre;
+        overflow: hidden;
+      }
+      .code .ttl {
+        font: 700 15px/1 var(--sans);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #8b93a7;
+        margin-bottom: 14px;
+      }
+      .code .key {
+        color: #8ab4ff;
+      }
+      .code .str {
+        color: #ffcb7a;
+      }
+      .pill-row {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 18px;
+        border-radius: 14px;
+        background: #fff;
+        border: 1px solid var(--line);
+        font: 700 20px/1 var(--sans);
+        color: var(--ink);
+      }
+      .pill i {
+        font-style: normal;
+        color: var(--ink-3);
+        font-weight: 600;
+      }
+      .pill.blue {
+        background: var(--figma-blue);
+        border-color: var(--figma-blue);
+        color: #fff;
+      }
+
+      /* ---------- Slide 4: quick actions + regenerate ---------- */
+      .qa-row {
+        margin-top: 64px;
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 52px;
+        align-items: start;
+      }
+      .palette {
+        background: #1f1f22;
+        color: #f4f4f5;
+        border-radius: 22px;
+        padding: 22px;
+        box-shadow: 0 30px 70px rgba(15, 23, 42, 0.25);
+      }
+      .palette .input {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: #2b2b30;
+        border-radius: 14px;
+        padding: 18px 20px;
+        font: 600 26px/1 var(--sans);
+      }
+      .palette .chip {
+        background: #3a3a42;
+        padding: 8px 12px;
+        border-radius: 9px;
+        font-size: 21px;
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .palette .chip b {
+        color: #a1a1aa;
+        font-weight: 600;
+      }
+      .palette .caret {
+        width: 3px;
+        height: 30px;
+        background: #7aa7ff;
+        border-radius: 2px;
+      }
+      .palette .hint {
+        color: #a1a1aa;
+        font: 600 18px/1 var(--sans);
+        margin: 22px 10px 10px;
+      }
+      .palette .opt {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 18px;
+        border-radius: 12px;
+        font: 600 24px/1 var(--sans);
+        color: #e4e4e7;
+      }
+      .palette .opt.active {
+        background: #3b5bdb;
+        color: #fff;
+      }
+      .palette .opt small {
+        font: 500 18px/1 var(--sans);
+        color: #a1a1aa;
+      }
+      .palette .opt.active small {
+        color: #dbe4ff;
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.1);
+        overflow: hidden;
+      }
+      .panel .sec {
+        padding: 20px 24px;
+        border-bottom: 1px solid #f0eeea;
+      }
+      .panel .sec:last-child {
+        border-bottom: 0;
+      }
+      .panel .sec h4 {
+        margin: 0 0 14px;
+        font: 700 18px/1 var(--sans);
+        color: var(--ink);
+      }
+      .panel .relaunch {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+        border-radius: 12px;
+        border: 1px solid #d6dbe6;
+        font: 700 21px/1 var(--sans);
+      }
+      .panel .relaunch small {
+        font: 500 16px/1 var(--sans);
+        color: var(--ink-3);
+      }
+      .ba {
+        display: grid;
+        grid-template-columns: 1fr 34px 1fr;
+        gap: 12px;
+        align-items: center;
+      }
+      .ba .box {
+        padding: 14px 16px;
+        border-radius: 12px;
+        background: #f8f7f4;
+        border: 1px solid var(--line);
+        font: 600 18px/1.35 var(--sans);
+        color: var(--ink-2);
+      }
+      .ba .box.new {
+        background: var(--brand-tint);
+        border-color: #dfe3ff;
+        color: var(--ink);
+      }
+      .ba .arrow {
+        text-align: center;
+        font: 700 26px/1 var(--sans);
+        color: var(--brand);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 1920×1080 carousel slides. Query: ?slide=1..4&icon=1..4 -->
+    <div class="canvas slide" id="canvas">
+      <div class="brand-mini" id="brandMini"><span>Indian User Data</span></div>
+
+      <!-- Slide 1 -->
+      <div class="slide-body" data-slide="1">
+        <div class="kicker">28 data types</div>
+        <h1 class="title">Everything a profile needs, <em>all Indian.</em></h1>
+        <div class="groups" id="groups"></div>
+      </div>
+
+      <!-- Slide 2 -->
+      <div class="slide-body" data-slide="2">
+        <div class="kicker">Fill by layer names</div>
+        <h1 class="title">Fill a whole card <em>as one person.</em></h1>
+        <div class="fill-row">
+          <div class="layers" id="layers"></div>
+          <div class="cards" id="cards"></div>
+        </div>
+        <div class="footnote">
+          Name your text layers <b>“Name”</b>, <b>“Email”</b>, <b>“Phone”</b>… select the cards, click
+          <b>Fill by layer names</b>.
+        </div>
+      </div>
+
+      <!-- Slide 3 -->
+      <div class="slide-body" data-slide="3">
+        <div class="kicker">Create user sets</div>
+        <h1 class="title">Whole user sets, <em>on the canvas or as data.</em></h1>
+        <div class="sets-row">
+          <div class="table-stage"><table class="ud" id="table"></table></div>
+          <div class="side">
+            <div class="code" id="json"></div>
+            <div class="pill-row">
+              <span class="pill blue">Add table to Figma</span>
+              <span class="pill"><i>⤓</i> JSON</span>
+              <span class="pill"><i>⤓</i> CSV</span>
+              <span class="pill"><i>⧉</i> Copy for spreadsheets</span>
+            </div>
+          </div>
+        </div>
+        <div class="footnote">
+          Up to <b>200 users</b> on the canvas, <b>10,000</b> as JSON or CSV. Users as columns or as rows.
+        </div>
+      </div>
+
+      <!-- Slide 4 -->
+      <div class="slide-body" data-slide="4">
+        <div class="kicker">Quick actions · Regenerate</div>
+        <h1 class="title">No window needed, <em>fresh data in a click.</em></h1>
+        <div class="qa-row">
+          <div class="palette" id="palette"></div>
+          <div class="panel" id="panel"></div>
+        </div>
+        <div class="footnote">
+          Press <b>Ctrl /</b> (<b>⌘ /</b> on Mac), type a data type, done. Filled layers get a
+          <b>Regenerate data</b> button in the right panel.
+        </div>
+      </div>
+    </div>
+
+    <script src="icons.js"></script>
+    <script src="samples.js"></script>
+    <script>
+      const params = new URLSearchParams(location.search);
+      const slide = Number(params.get("slide") || 1);
+      const icon = Number(params.get("icon") || 1);
+      document.querySelector(`[data-slide="${slide}"]`).classList.add("on");
+      document.getElementById("brandMini").prepend(renderIcon(icon, 46, { rounded: true }));
+
+      const { fields, groups, people } = SAMPLES;
+      const byKey = Object.fromEntries(fields.map((f) => [f.key, f]));
+      const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+      // IDs and numbers read better in a monospace font
+      const MONO = new Set(["Mobile", "PIN", "Pass", "UID", "PAN", "Voter", "DL", "RC", "RCBH", "PANi", "GSTIN", "CIN", "DIN", "LLPIN", "TAN", "DoB"]);
+      const initials = (p) => (p.FirstName[0] + p.LastName[0]).toUpperCase();
+      const AVATAR = ["linear-gradient(135deg,#ffb347,#ff6a3d)", "linear-gradient(135deg,#6d6cff,#3527c7)", "linear-gradient(135deg,#2dd4bf,#0f766e)"];
+
+      // Featured people (indexes into samples.js)
+      const P = [people[0], people[2], people[4], people[1], people[3], people[5], people[7]];
+
+      if (slide === 1) {
+        // Personal + profession together, then location, personal IDs, business IDs
+        const columns = [
+          ["Personal details", ["FirstName", "LastName", "DoB", "Email", "Mobile", "Prof"]],
+          ["Location", ["UrbAddress", "RurAddress", "City", "State", "CityState", "PIN"]],
+          ["Personal IDs", ["UID", "PAN", "Pass", "Voter", "DL", "RC", "RCBH", "UPIn", "UPIm"]],
+          ["Business IDs", ["GSTIN", "PANi", "CIN", "DIN", "LLPIN", "TAN"]],
+        ];
+        const p = P[0];
+        document.getElementById("groups").innerHTML = columns
+          .map(
+            ([title, keys]) => `<div class="card group"><div class="label">${title}</div>${keys
+              .map((k) => {
+                const label = { UID: "Aadhaar", UrbAddress: "Urban address", RurAddress: "Rural address", PANi: "PAN (company)" }[k] || byKey[k].shortLabel;
+                return `<div class="row"><span class="k">${esc(label)}</span><span class="v${MONO.has(k) ? " mono" : ""}">${esc(p[k])}</span></div>`;
+              })
+              .join("")}</div>`
+          )
+          .join("");
+      }
+
+      if (slide === 2) {
+        const layers = ["Name", "Profession", "Email", "Phone", "Address", "PAN"];
+        document.getElementById("layers").innerHTML =
+          `<div class="head">Layers</div>` +
+          [1, 2, 3]
+            .map(
+              (n) =>
+                `<div class="layer-row frame"><span class="glyph">#</span>Profile card ${n}</div>` +
+                (n === 1 ? layers.map((l) => `<div class="layer-row child"><span class="glyph">T</span>${l}</div>`).join("") : "")
+            )
+            .join("");
+        document.getElementById("cards").innerHTML = P.slice(0, 3)
+          .map((p, i) => {
+            // Highlight the part of the email that comes from the name
+            const first = p.FirstName.replace(/[^A-Za-z]/g, "").toLowerCase();
+            const email = esc(p.Email).replace(first, `<span class="match">${first}</span>`);
+            return `<div class="card person selected">
+              <div class="top"><div class="avatar" style="background:${AVATAR[i]}">${initials(p)}</div>
+                <div><div class="name">${esc(p.FullName)}</div><div class="prof">${esc(p.Prof)}</div></div></div>
+              <div class="facts">
+                <div class="fact"><span class="k">Email</span><span class="v">${email}</span></div>
+                <div class="fact"><span class="k">Phone</span><span class="v mono">${esc(p.Mobile)}</span></div>
+                <div class="fact"><span class="k">Address</span><span class="v" style="white-space:normal">${esc(p.City)}, ${esc(p.State)} ${esc(p.PIN)}</span></div>
+                <div class="fact"><span class="k">PAN</span><span class="v mono">${esc(p.PAN)}</span></div>
+              </div></div>`;
+          })
+          .join("");
+      }
+
+      if (slide === 3) {
+        const cols = [["FullName", "Full Name"], ["Email", "Email"], ["Mobile", "Mobile"], ["City", "City"], ["PAN", "PAN"]];
+        const rows = P.slice(0, 6);
+        document.getElementById("table").innerHTML =
+          `<tr><td>User</td>${cols.map(([, l]) => `<td>${l}</td>`).join("")}</tr>` +
+          rows.map((p, i) => `<tr><td>User ${i + 1}</td>${cols.map(([k]) => `<td${MONO.has(k) ? ' class="mono"' : ""}>${esc(p[k])}</td>`).join("")}</tr>`).join("");
+        const p = rows[0];
+        const entries = [["Full Name", p.FullName], ["Email", p.Email], ["Mobile", p.Mobile], ["City", p.City], ["PAN (Personal)", p.PAN], ["UID (Aadhar)", p.UID]];
+        document.getElementById("json").innerHTML =
+          `<div class="ttl">indian-user-data.json</div>[\n  {\n` +
+          entries.map(([k, v], i) => `    <span class="key">"${esc(k)}"</span>: <span class="str">"${esc(v)}"</span>${i < entries.length - 1 ? "," : ""}`).join("\n") +
+          `\n  },\n  …\n]`;
+      }
+
+      if (slide === 4) {
+        document.getElementById("palette").innerHTML = `
+          <div class="input"><span class="chip">${renderIcon(icon, 26, { rounded: true }).outerHTML}<b>Indian User Data Generator</b></span>
+            <span class="chip"><b>Data type</b></span><span>aad</span><span class="caret"></span></div>
+          <div class="hint">Suggestions</div>
+          <div class="opt active">UID (Aadhar) <small>fills the selected layers</small></div>
+          <div class="opt">Fill by layer names <small>cards, one person each</small></div>
+          <div class="opt">Regenerate selected data <small>new values</small></div>`;
+        const before = P[3];
+        const after = P[4];
+        document.getElementById("panel").innerHTML = `
+          <div class="sec"><h4>Plugin</h4>
+            <div class="relaunch">↻ Regenerate data <small>Indian User Data Generator</small></div></div>
+          <div class="sec"><h4>Selected card</h4>
+            <div class="ba">
+              <div class="box">${esc(before.FullName)}<br /><span class="mono" style="font-size:16px">${esc(before.Email)}</span></div>
+              <div class="arrow">→</div>
+              <div class="box new">${esc(after.FullName)}<br /><span class="mono" style="font-size:16px">${esc(after.Email)}</span></div>
+            </div></div>
+          <div class="sec" style="font:500 18px/1.45 var(--sans);color:var(--ink-3)">
+            Works on single layers, whole cards and tables. Each card stays one person, and mixed styles like a bold name are kept.</div>`;
+      }
+    </script>
+  </body>
+</html>

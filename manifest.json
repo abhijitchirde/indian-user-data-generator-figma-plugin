@@ -8,5 +8,20 @@
   "networkAccess": {
     "allowedDomains": ["none"]
   },
-  "documentAccess": "dynamic-page"
+  "documentAccess": "dynamic-page",
+  "parameters": [
+    {
+      "name": "Data type",
+      "key": "dataType",
+      "description": "Fill selected text layers, e.g. Email, PAN or Address"
+    }
+  ],
+  "parameterOnly": false,
+  "relaunchButtons": [
+    {
+      "command": "regenerate",
+      "name": "Regenerate data",
+      "multipleSelection": true
+    }
+  ]
 }

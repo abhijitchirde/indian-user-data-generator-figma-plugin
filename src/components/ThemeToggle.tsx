@@ -1,31 +1,23 @@
 import * as React from "react";
-import { useFigmaTheme } from "../hooks/useFigmaTheme";
+import { ThemePreference, useThemePreference } from "../hooks/useThemePreference";
 
-interface ThemeToggleProps {
-  className?: string;
-}
+const ICON: Record<ThemePreference, string> = { auto: "🌗", light: "☀️", dark: "🌙" };
+const LABEL: Record<ThemePreference, string> = {
+  auto: "Auto (follows Figma)",
+  light: "Light",
+  dark: "Dark",
+};
+const NEXT: Record<ThemePreference, ThemePreference> = { auto: "light", light: "dark", dark: "auto" };
 
-export default function ThemeToggle({ className = "" }: ThemeToggleProps) {
-  const { theme, isDark, toggleTheme } = useFigmaTheme();
+const ThemeToggle = () => {
+  const { preference, cycle } = useThemePreference();
+  const title = `Theme: ${LABEL[preference]}. Click for ${LABEL[NEXT[preference]]}`;
 
   return (
-    <button
-      onClick={toggleTheme}
-      className={`theme-toggle ${className}`}
-      title={`Switch to ${isDark ? "light" : "dark"} theme`}
-      style={{
-        padding: "4px 8px",
-        fontSize: "11px",
-        border: "1px solid var(--figma-color-border)",
-        borderRadius: "4px",
-        backgroundColor: "var(--figma-color-bg)",
-        color: "var(--figma-color-text)",
-        cursor: "pointer",
-        transition: "all 0.2s ease",
-        minWidth: "20px",
-      }}
-    >
-      {isDark ? "☀️" : "🌙"}
+    <button className="icon-button" onClick={cycle} title={title} aria-label={title}>
+      {ICON[preference]}
     </button>
   );
-}
+};
+
+export default ThemeToggle;

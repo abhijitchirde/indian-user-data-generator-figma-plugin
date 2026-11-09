@@ -1,1435 +1,376 @@
 //Made by Abhijit Chirde
 //abhijitchirde.com
 
-import { dataSet } from "./data/dataSet";
 import {
-  generateAadhar,
-  generateCIN,
-  generateCity,
-  generateCityStatePair,
-  generateDIN,
-  generateDL,
-  generateDoB,
-  generateEmail,
-  generateFirstName,
-  generateGSTIN,
-  generateLastName,
-  generateLLPIN,
-  generateMobile,
-  generatePAN,
-  generatePANi,
-  generatePassport,
-  generatePINCode,
-  generateProf,
-  generateRC,
-  generateRCBH,
-  generateRurAddress,
-  generateState,
-  generateTAN,
-  generateUPIm,
-  generateUPIn,
-  generateUrbAddress,
-  generateVoterID,
-} from "./functions/generators";
+  fieldForLayerName,
+  FieldSelection,
+  FIELDS_BY_KEY,
+  generateRecords,
+  isFieldKey,
+  Person,
+  recordsToCSV,
+  recordsToTSV,
+  selectedTableFields,
+} from "./fields";
+import { planFillByName } from "./functions/fillByName";
+import { loadTableFonts, writeText, WriteTally } from "./functions/fonts";
+import { centeredAt, findFreeSpot, Rect } from "./functions/placement";
 import {
-  loadUserFont,
-  setFont,
-  setFontLight,
-  setUserFont,
-} from "./functions/utils";
+  addRegenerateButton,
+  describeRegenerateResult,
+  regenerateNodes,
+  REGENERATE_COMMAND,
+  newPersonId,
+  tagPersonScope,
+  tagTextField,
+} from "./functions/regenerate";
+import { createFigJamTable, createFrameTable } from "./functions/table";
+import {
+  ACTION_FILL_BY_NAME,
+  ACTION_REGENERATE,
+  QUICK_ACTION_KEY,
+  quickActionSuggestions,
+} from "./quickActions";
+import {
+  buildTableMatrix,
+  columnWidths,
+  isTableLayout,
+  TableLayout,
+} from "./tableMatrix";
 
-figma.loadFontAsync({ family: "Roboto", style: "Regular" });
-figma.loadFontAsync({ family: "Roboto", style: "Light" });
+// Upper limits for one request. The canvas table creates ~2 nodes per cell,
+// so it is capped much lower than the file exports.
+const MAX_TABLE_USERS = 200;
+const MAX_EXPORT_USERS = 10000;
 
-//Show UI on figma canvas
-figma.showUI(__html__, { width: 360, height: 620 });
+const THEME_PREF_KEY = "themePreference";
+const UI_PREFS_KEY = "uiPreferences";
 
-var generateTableLabelWidth = 78;
-var generateTableDataWidth = 275;
-var generateTableCellHeight = 26;
-var generateTableHeaderHeight = 16;
+/** What to tell the user after an action. quiet: no toast needed inside the plugin window */
+interface Outcome {
+  message: string;
+  quiet?: boolean;
+}
 
-loadUserFont();
-
-figma.on("selectionchange", () => {
-  loadUserFont();
+// Quick actions (Ctrl/Cmd + /): suggestions while the user types the data type
+figma.parameters.on("input", ({ query, result }) => {
+  result.setSuggestions(quickActionSuggestions(query));
 });
 
-//Receiving the button inputs from UI
-figma.ui.onmessage = (msg) => {
-  if (msg.type === "get-theme") {
-    // Send current Figma theme to UI
-    // Figma and Slides use light theme, FigJam and Buzz use dark theme
-    const isLightTheme =
-      figma.editorType === "figma" || figma.editorType === "slides";
-    figma.ui.postMessage({
-      type: "theme-changed",
-      theme: isLightTheme ? "light" : "dark",
+// Every launch: properties-panel "Regenerate data" button, a quick action, or the plugin window
+figma.on("run", async ({ command, parameters }) => {
+  if (command === REGENERATE_COMMAND) {
+    const tally = await regenerateNodes(figma.currentPage.selection);
+    figma.closePlugin(describeRegenerateResult(tally));
+  } else if (parameters?.[QUICK_ACTION_KEY]) {
+    const outcome = await runQuickAction(parameters[QUICK_ACTION_KEY]);
+    figma.closePlugin(outcome.message);
+  } else {
+    // 680 fits the tallest group (Personal IDs) open in both tabs without scrolling.
+    // themeColors adds a figma-light / figma-dark class to the UI's <html> (used by ui.css).
+    figma.showUI(__html__, { width: 360, height: 680, themeColors: true });
+    figma.ui.onmessage = handleMessage;
+  }
+});
+
+async function runQuickAction(dataType: string): Promise<Outcome> {
+  if (dataType === ACTION_FILL_BY_NAME) return fillByLayerNames();
+  if (dataType === ACTION_REGENERATE) {
+    return {
+      message: describeRegenerateResult(
+        await regenerateNodes(figma.currentPage.selection),
+      ),
+    };
+  }
+  return fillSelection(dataType);
+}
+
+function notifyOutcome(outcome: Outcome) {
+  if (!outcome.quiet) figma.notify(outcome.message, { timeout: 4000 });
+}
+
+/** Validates the requested number of users, notifying the user when it is invalid */
+function parseUserCount(value: unknown, max: number): number | null {
+  const count = Number(value);
+  if (!Number.isFinite(count) || !Number.isInteger(count)) {
+    figma.notify("Please enter a whole number", { timeout: 1500 });
+    return null;
+  }
+  if (count <= 0) {
+    figma.notify("Please enter a number greater than 0", { timeout: 1500 });
+    return null;
+  }
+  if (count > max) {
+    figma.notify(`You can generate up to ${max} users at a time`, {
+      timeout: 2500,
     });
+    return null;
+  }
+  return count;
+}
+
+//Receiving the button inputs from UI
+async function handleMessage(msg) {
+  // Theme preference (Auto / Light / Dark from the footer), saved per user
+  if (msg.type === "get-theme-pref") {
+    const value = await figma.clientStorage.getAsync(THEME_PREF_KEY);
+    figma.ui.postMessage({ type: "theme-pref", value: value ?? "auto" });
+  }
+
+  if (msg.type === "set-theme-pref") {
+    await figma.clientStorage.setAsync(THEME_PREF_KEY, msg.value);
+  }
+
+  // UI choices (tab, table fields, user count, domains); the UI validates what it gets
+  if (msg.type === "get-ui-prefs") {
+    const value = await figma.clientStorage.getAsync(UI_PREFS_KEY);
+    figma.ui.postMessage({ type: "ui-prefs", value: value ?? null });
+  }
+
+  if (msg.type === "set-ui-prefs") {
+    await figma.clientStorage.setAsync(UI_PREFS_KEY, msg.value);
   }
 
   if (msg.type === "generate-random") {
-    //Giving notification if no layer is selected
-    if (figma.currentPage.selection.length === 0) {
-      figma.notify("Please select text layers to add data", { timeout: 1000 });
-    }
+    notifyOutcome(
+      await fillSelection(msg.data.inputValue, msg.data.profDomain),
+    );
+  }
 
-    let textTypeCount = 0;
-    //for all the selected nodes
-    for (const node of figma.currentPage.selection) {
-      if (node.type === "TEXT") {
-        textTypeCount++;
-      }
-    }
+  if (msg.type === "fill-by-name") {
+    notifyOutcome(await fillByLayerNames(msg.data?.profDomain));
+  }
 
-    if (textTypeCount === 0) {
-      figma.notify("Please select text layers to add data", { timeout: 1000 });
-    } else {
-      for (const node of figma.currentPage.selection) {
-        setUserFont(node);
-        generateRandomData(node, msg.data); //Calling function to put requested data on text layer
-      }
-    }
+  if (msg.type === "regenerate-selection") {
+    // Same as the "Regenerate data" button in the properties panel
+    const tally = await regenerateNodes(figma.currentPage.selection);
+    figma.notify(describeRegenerateResult(tally), { timeout: 3000 });
   }
 
   if (msg.type === "generate-table") {
-    let num = msg.data.noOfUsers;
-
-    if (isNaN(num)) {
-      figma.notify("Please enter a number", { timeout: 1000 });
-    } else if (num <= 0) {
-      figma.notify("Please enter a number greater than 0", { timeout: 1000 });
-    } else {
-      generateTable(msg.data); //Calling function to create a user data table and append on canvas
+    const count = parseUserCount(msg.data.noOfUsers, MAX_TABLE_USERS);
+    if (count !== null) {
+      const layout = isTableLayout(msg.data.layout)
+        ? msg.data.layout
+        : "columns";
+      await generateTable(msg.data.chkData, count, msg.data.profDomain, layout);
     }
   }
 
   if (msg.type === "export-json") {
-    let num = msg.data.noOfUsers;
-
-    if (isNaN(num)) {
-      figma.notify("Please enter a number", { timeout: 1000 });
-    } else if (num <= 0) {
-      figma.notify("Please enter a number greater than 0", { timeout: 1000 });
-    } else {
-      const jsonData = generateJSON(msg.data);
-      figma.ui.postMessage({
-        type: "json-export-ready",
-        data: jsonData,
+    const count = parseUserCount(msg.data.noOfUsers, MAX_EXPORT_USERS);
+    if (count !== null) {
+      const records = generateRecords(msg.data.chkData, count, {
+        profDomain: msg.data.profDomain,
       });
-      figma.notify(`JSON export for ${num} user(s) generated successfully.`, {
+      figma.ui.postMessage({ type: "json-export-ready", data: records });
+      figma.notify(`JSON export for ${count} user(s) generated successfully.`, {
         timeout: 2500,
       });
     }
   }
 
   if (msg.type === "export-csv") {
-    let num = msg.data.noOfUsers;
-
-    if (isNaN(num)) {
-      figma.notify("Please enter a number", { timeout: 1000 });
-    } else if (num <= 0) {
-      figma.notify("Please enter a number greater than 0", { timeout: 1000 });
-    } else {
-      const csvData = generateCSV(msg.data);
+    const count = parseUserCount(msg.data.noOfUsers, MAX_EXPORT_USERS);
+    if (count !== null) {
+      const records = generateRecords(msg.data.chkData, count, {
+        profDomain: msg.data.profDomain,
+      });
       figma.ui.postMessage({
         type: "csv-export-ready",
-        data: csvData,
+        data: recordsToCSV(msg.data.chkData, records),
       });
-      figma.notify(`CSV export for ${num} user(s) generated successfully.`, {
+      figma.notify(`CSV export for ${count} user(s) generated successfully.`, {
         timeout: 2500,
       });
     }
   }
 
-  if (msg.type === "disclaimer") {
+  // Copy to clipboard: the plugin generates the text, the UI copies it (only the UI
+  // iframe can reach the clipboard) and reports back with "copy-done"
+  if (msg.type === "copy-json" || msg.type === "copy-tsv") {
+    const count = parseUserCount(msg.data.noOfUsers, MAX_EXPORT_USERS);
+    if (count !== null) {
+      const records = generateRecords(msg.data.chkData, count, {
+        profDomain: msg.data.profDomain,
+      });
+      const isJSON = msg.type === "copy-json";
+      figma.ui.postMessage({
+        type: "copy-ready",
+        text: isJSON
+          ? JSON.stringify(records, null, 2)
+          : recordsToTSV(msg.data.chkData, records),
+        message: `Copied ${count} user${count === 1 ? "" : "s"} ${
+          isJSON ? "as JSON" : "for spreadsheets"
+        }`,
+      });
+    }
+  }
+
+  if (msg.type === "copy-done") {
     figma.notify(
-      "This plugin generates sample user data offline. Any resemblances to real world entities are pure unintentional coincidences.",
-      { timeout: 4000 }
+      msg.ok
+        ? msg.message
+        : "Couldn't copy to the clipboard. Use the JSON or CSV download instead.",
+      { timeout: 2500, error: !msg.ok },
     );
   }
-};
 
-async function generateRandomData(currentNode, msgData) {
-  let input = msgData.inputValue;
-
-  //Also adding a TEXT node check initially as characters is only available on that, otherwise it will throw an error
-
-  if (currentNode.type === "TEXT") {
-    if (input === "FullName") {
-      let first = generateFirstName();
-      let last = generateLastName();
-      currentNode.characters = `${first} ${last}`;
-    } else if (input === "DoB") {
-      currentNode.characters = generateDoB();
-    } else if (input === "Mobile") {
-      currentNode.characters = generateMobile();
-    } else if (input === "UID") {
-      currentNode.characters = generateAadhar();
-    } else if (input === "UPIm") {
-      currentNode.characters = generateUPIm();
-    } else if (input === "Email") {
-      currentNode.characters = generateEmail();
-    } else if (input === "UPIn") {
-      currentNode.characters = generateUPIn();
-    } else if (input === "Pass") {
-      currentNode.characters = generatePassport();
-    } else if (input === "DL") {
-      currentNode.characters = generateDL();
-    } else if (input === "RC") {
-      currentNode.characters = generateRC();
-    } else if (input === "RCBH") {
-      currentNode.characters = generateRCBH();
-    } else if (input === "PIN") {
-      currentNode.characters = generatePINCode();
-    } else if (input === "City") {
-      currentNode.characters = generateCity();
-    } else if (input === "State") {
-      currentNode.characters = generateState();
-    } else if (input === "Prof") {
-      let profDomain = msgData.profDomain;
-      currentNode.characters = generateProf(profDomain);
-    } else if (input === "CityState") {
-      currentNode.characters = generateCityStatePair();
-    } else if (input === "FirstName") {
-      currentNode.characters = generateFirstName();
-    } else if (input === "LastName") {
-      currentNode.characters = generateLastName();
-    } else if (input === "RurAddress") {
-      currentNode.characters = generateRurAddress();
-    } else if (input === "UrbAddress") {
-      currentNode.characters = generateUrbAddress();
-    } else if (input === "PAN") {
-      currentNode.characters = generatePAN();
-    } else if (input === "Voter") {
-      currentNode.characters = generateVoterID();
-    } else if (input === "CIN") {
-      currentNode.characters = generateCIN();
-    } else if (input === "GSTIN") {
-      currentNode.characters = generateGSTIN();
-    } else if (input === "DIN") {
-      currentNode.characters = generateDIN();
-    } else if (input === "LLPIN") {
-      currentNode.characters = generateLLPIN();
-    } else if (input === "PANi") {
-      currentNode.characters = generatePANi();
-    } else if (input === "TAN") {
-      currentNode.characters = generateTAN();
-    }
+  if (msg.type === "disclaimer") {
+    figma.notify(
+      "Everything here is made up for designs and testing. Names, IDs and addresses aren't real, and any match with a real person or business is a coincidence.",
+      { timeout: 6000 },
+    );
   }
 }
 
-//Function for generating a new card with user details and appending it on the canvas
-function generateTable(msgData) {
-  const nodes: SceneNode[] = [];
-  const dataContent = msgData.chkData;
-  const userCount = msgData.noOfUsers; //To be used to create user sets
+/** Fills every selected text layer with a new value of the requested field */
+async function fillSelection(
+  fieldKey: unknown,
+  profDomain?: string,
+): Promise<Outcome> {
+  if (!isFieldKey(fieldKey)) return { message: "Unknown data type" };
 
-  //If addresses are not required, reduce the width of data section
-  if (
-    dataContent.RurAddressValue === false &&
-    dataContent.UrbAddressValue === false
-  ) {
-    generateTableDataWidth = 135;
-  } else if (
-    dataContent.RurAddressValue === true ||
-    dataContent.UrbAddressValue === true
-  ) {
-    generateTableDataWidth = 275;
+  const textNodes = figma.currentPage.selection.filter(
+    (node): node is TextNode => node.type === "TEXT",
+  );
+  if (textNodes.length === 0) {
+    return { message: "Please select text layers to add data" };
   }
 
-  const tableFrame = figma.createFrame(); //Creating larger table frame
-  tableFrame.layoutMode = "HORIZONTAL"; //Horizontal autolayout
-  tableFrame.itemSpacing = 0;
-  tableFrame.name = "Indian user data";
-  var tableFrameWidth = 0;
-
-  const labelSection = figma.createFrame(); //Section containing labels
-  labelSection.layoutMode = "VERTICAL"; //Vertical autolayout
-  labelSection.itemSpacing = 0;
-  labelSection.name = "Labels";
-
-  var labelSectionHeight = 0; //adjusting label section width and height manually. Need more thoughts on this for optimization
-
-  //Add header for label section
-  const labelHeaderFrame = figma.createFrame();
-  formatLabelHeaderFrame(labelHeaderFrame);
-  const labelHeaderText = figma.createText();
-  setFont(labelHeaderText);
-  labelHeaderText.characters = "Details";
-  formatLabelHeaderText(labelHeaderText);
-  labelHeaderFrame.appendChild(labelHeaderText);
-  labelSectionHeight += generateTableHeaderHeight;
-  labelSection.appendChild(labelHeaderFrame);
-
-  //Code block to generate user details labels as it needs to be generated at least once
-  if (dataContent.FirstNameValue === true) {
-    const firstnameLabelFrame = figma.createFrame();
-    formatLabelFrame(firstnameLabelFrame);
-    const firstnameLabel = figma.createText();
-    setFont(firstnameLabel);
-    firstnameLabel.characters = "First Name";
-    formatLabelText(firstnameLabel);
-    firstnameLabelFrame.appendChild(firstnameLabel);
-    labelSectionHeight += generateTableCellHeight;
-    labelSection.appendChild(firstnameLabelFrame);
+  const tally = new WriteTally();
+  for (const node of textNodes) {
+    // Each layer is a different user
+    const value = new Person({ profDomain }).get(fieldKey);
+    const status = await writeText(node, value);
+    tally.add(status);
+    if (status !== "failed") tagTextField(node, fieldKey, profDomain);
   }
 
-  if (dataContent.LastNameValue === true) {
-    const lastnameLabelFrame = figma.createFrame();
-    formatLabelFrame(lastnameLabelFrame);
-    const lastnameLabel = figma.createText();
-    setFont(lastnameLabel);
-    lastnameLabel.characters = "Last Name";
-    formatLabelText(lastnameLabel);
-    lastnameLabelFrame.appendChild(lastnameLabel);
-    labelSectionHeight += generateTableCellHeight;
-    labelSection.appendChild(lastnameLabelFrame);
-  }
-
-  if (dataContent.FullNameValue === true) {
-    const fullnameLabelFrame = figma.createFrame();
-    formatLabelFrame(fullnameLabelFrame);
-    const fullnameLabel = figma.createText();
-    setFont(fullnameLabel);
-    fullnameLabel.characters = "Full Name";
-    formatLabelText(fullnameLabel);
-    fullnameLabelFrame.appendChild(fullnameLabel);
-    labelSectionHeight += generateTableCellHeight;
-    labelSection.appendChild(fullnameLabelFrame);
-  }
-
-  if (dataContent.DoBValue === true) {
-    const dobLabelFrame = figma.createFrame();
-    formatLabelFrame(dobLabelFrame);
-    const dobLabel = figma.createText();
-    setFont(dobLabel);
-    dobLabel.characters = "Date of Birth";
-    formatLabelText(dobLabel);
-    dobLabelFrame.appendChild(dobLabel);
-    labelSectionHeight += generateTableCellHeight;
-    labelSection.appendChild(dobLabelFrame);
-  }
-
-  if (dataContent.EmailValue === true) {
-    const emailLabelFrame = figma.createFrame();
-    formatLabelFrame(emailLabelFrame);
-    const emailLabel = figma.createText();
-    setFont(emailLabel);
-    emailLabel.characters = "Email";
-    formatLabelText(emailLabel);
-    emailLabelFrame.appendChild(emailLabel);
-    labelSectionHeight += generateTableCellHeight;
-    labelSection.appendChild(emailLabelFrame);
-  }
-
-  if (dataContent.MobileValue === true) {
-    const mobileLabelFrame = figma.createFrame();
-    formatLabelFrame(mobileLabelFrame);
-    const mobileLabel = figma.createText();
-    setFont(mobileLabel);
-    mobileLabel.characters = "Mobile";
-    formatLabelText(mobileLabel);
-    mobileLabelFrame.appendChild(mobileLabel);
-    labelSectionHeight += generateTableCellHeight;
-    labelSection.appendChild(mobileLabelFrame);
-  }
-
-  if (dataContent.ProfValue === true) {
-    const profLabelFrame = figma.createFrame();
-    formatLabelFrame(profLabelFrame);
-    const profLabel = figma.createText();
-    setFont(profLabel);
-    profLabel.characters = "Profession";
-    formatLabelText(profLabel);
-    profLabelFrame.appendChild(profLabel);
-    labelSectionHeight += generateTableCellHeight;
-    labelSection.appendChild(profLabelFrame);
-  }
-
-  if (dataContent.RurAddressValue === true) {
-    const rurLabelFrame = figma.createFrame();
-    formatLabelFrame(rurLabelFrame);
-    const rurLabel = figma.createText();
-    setFont(rurLabel);
-    rurLabel.characters = "Rural Address";
-    formatLabelText(rurLabel);
-    rurLabelFrame.appendChild(rurLabel);
-    labelSectionHeight += generateTableCellHeight;
-    labelSection.appendChild(rurLabelFrame);
-  }
-
-  if (dataContent.UrbAddressValue === true) {
-    const urbLabelFrame = figma.createFrame();
-    formatLabelFrame(urbLabelFrame);
-    const urbLabel = figma.createText();
-    setFont(urbLabel);
-    urbLabel.characters = "Urban Address";
-    formatLabelText(urbLabel);
-    urbLabelFrame.appendChild(urbLabel);
-    labelSectionHeight += generateTableCellHeight;
-    labelSection.appendChild(urbLabelFrame);
-  }
-
-  if (dataContent.CityValue === true) {
-    const cityLabelFrame = figma.createFrame();
-    formatLabelFrame(cityLabelFrame);
-    const cityLabel = figma.createText();
-    setFont(cityLabel);
-    cityLabel.characters = "City";
-    formatLabelText(cityLabel);
-    cityLabelFrame.appendChild(cityLabel);
-    labelSectionHeight += generateTableCellHeight;
-    labelSection.appendChild(cityLabelFrame);
-  }
-
-  if (dataContent.StateValue === true) {
-    const stateLabelFrame = figma.createFrame();
-    formatLabelFrame(stateLabelFrame);
-    const stateLabel = figma.createText();
-    setFont(stateLabel);
-    stateLabel.characters = "State";
-    formatLabelText(stateLabel);
-    stateLabelFrame.appendChild(stateLabel);
-    labelSectionHeight += generateTableCellHeight;
-    labelSection.appendChild(stateLabelFrame);
-  }
-
-  if (dataContent.PINValue === true) {
-    const pinLabelFrame = figma.createFrame();
-    formatLabelFrame(pinLabelFrame);
-    const pinLabel = figma.createText();
-    setFont(pinLabel);
-    pinLabel.characters = "PIN Code";
-    formatLabelText(pinLabel);
-    pinLabelFrame.appendChild(pinLabel);
-    labelSectionHeight += generateTableCellHeight;
-    labelSection.appendChild(pinLabelFrame);
-  }
-
-  if (dataContent.PassValue === true) {
-    const passLabelFrame = figma.createFrame();
-    formatLabelFrame(passLabelFrame);
-    const passLabel = figma.createText();
-    setFont(passLabel);
-    passLabel.characters = "Passport";
-    formatLabelText(passLabel);
-    passLabelFrame.appendChild(passLabel);
-    labelSectionHeight += generateTableCellHeight;
-    labelSection.appendChild(passLabelFrame);
-  }
-
-  if (dataContent.UIDValue === true) {
-    const uidLabelFrame = figma.createFrame();
-    formatLabelFrame(uidLabelFrame);
-    const uidLabel = figma.createText();
-    setFont(uidLabel);
-    uidLabel.characters = "UID (Aadhar)";
-    formatLabelText(uidLabel);
-    uidLabelFrame.appendChild(uidLabel);
-    labelSectionHeight += generateTableCellHeight;
-    labelSection.appendChild(uidLabelFrame);
-  }
-
-  if (dataContent.PANValue === true) {
-    const panLabelFrame = figma.createFrame();
-    formatLabelFrame(panLabelFrame);
-    const panLabel = figma.createText();
-    setFont(panLabel);
-    panLabel.characters = "PAN (Personal)";
-    formatLabelText(panLabel);
-    panLabelFrame.appendChild(panLabel);
-    labelSectionHeight += generateTableCellHeight;
-    labelSection.appendChild(panLabelFrame);
-  }
-
-  if (dataContent.UPInValue === true) {
-    const upinLabelFrame = figma.createFrame();
-    formatLabelFrame(upinLabelFrame);
-    const upinLabel = figma.createText();
-    setFont(upinLabel);
-    upinLabel.characters = "UPI (name)";
-    formatLabelText(upinLabel);
-    upinLabelFrame.appendChild(upinLabel);
-    labelSectionHeight += generateTableCellHeight;
-    labelSection.appendChild(upinLabelFrame);
-  }
-
-  if (dataContent.UPImValue === true) {
-    const upimLabelFrame = figma.createFrame();
-    formatLabelFrame(upimLabelFrame);
-    const upimLabel = figma.createText();
-    setFont(upimLabel);
-    upimLabel.characters = "UPI (mobile)";
-    formatLabelText(upimLabel);
-    upimLabelFrame.appendChild(upimLabel);
-    labelSectionHeight += generateTableCellHeight;
-    labelSection.appendChild(upimLabelFrame);
-  }
-
-  if (dataContent.DLValue === true) {
-    const dlLabelFrame = figma.createFrame();
-    formatLabelFrame(dlLabelFrame);
-    const dlLabel = figma.createText();
-    setFont(dlLabel);
-    dlLabel.characters = "Driving License";
-    formatLabelText(dlLabel);
-    dlLabelFrame.appendChild(dlLabel);
-    labelSectionHeight += generateTableCellHeight;
-    labelSection.appendChild(dlLabelFrame);
-  }
-
-  if (dataContent.RCValue === true) {
-    const rcLabelFrame = figma.createFrame();
-    formatLabelFrame(rcLabelFrame);
-    const rcLabel = figma.createText();
-    setFont(rcLabel);
-    rcLabel.characters = "Vehicle Reg. (RC)";
-    formatLabelText(rcLabel);
-    rcLabelFrame.appendChild(rcLabel);
-    labelSectionHeight += generateTableCellHeight;
-    labelSection.appendChild(rcLabelFrame);
-  }
-  if (dataContent.RCBHValue === true) {
-    const rcbhLabelFrame = figma.createFrame();
-    formatLabelFrame(rcbhLabelFrame);
-    const rcbhLabel = figma.createText();
-    setFont(rcbhLabel);
-    rcbhLabel.characters = "Vehicle Reg. (BH series)";
-    formatLabelText(rcbhLabel);
-    rcbhLabelFrame.appendChild(rcbhLabel);
-    labelSectionHeight += generateTableCellHeight;
-    labelSection.appendChild(rcbhLabelFrame);
-  }
-
-  if (dataContent.VoterValue === true) {
-    const voterLabelFrame = figma.createFrame();
-    formatLabelFrame(voterLabelFrame);
-    const voterLabel = figma.createText();
-    setFont(voterLabel);
-    voterLabel.characters = "Voter ID";
-    formatLabelText(voterLabel);
-    voterLabelFrame.appendChild(voterLabel);
-    labelSectionHeight += generateTableCellHeight;
-    labelSection.appendChild(voterLabelFrame);
-  }
-
-  if (dataContent.PANiValue === true) {
-    const PANiLabelFrame = figma.createFrame();
-    formatLabelFrame(PANiLabelFrame);
-    const PANiLabel = figma.createText();
-    setFont(PANiLabel);
-    PANiLabel.characters = "PAN (Corp)";
-    formatLabelText(PANiLabel);
-    PANiLabelFrame.appendChild(PANiLabel);
-    labelSectionHeight += generateTableCellHeight;
-    labelSection.appendChild(PANiLabelFrame);
-  }
-  if (dataContent.GSTINValue === true) {
-    const GSTINLabelFrame = figma.createFrame();
-    formatLabelFrame(GSTINLabelFrame);
-    const GSTINLabel = figma.createText();
-    setFont(GSTINLabel);
-    GSTINLabel.characters = "GSTIN";
-    formatLabelText(GSTINLabel);
-    GSTINLabelFrame.appendChild(GSTINLabel);
-    labelSectionHeight += generateTableCellHeight;
-    labelSection.appendChild(GSTINLabelFrame);
-  }
-
-  if (dataContent.CINValue === true) {
-    const CINLabelFrame = figma.createFrame();
-    formatLabelFrame(CINLabelFrame);
-    const CINLabel = figma.createText();
-    setFont(CINLabel);
-    CINLabel.characters = "CIN";
-    formatLabelText(CINLabel);
-    CINLabelFrame.appendChild(CINLabel);
-    labelSectionHeight += generateTableCellHeight;
-    labelSection.appendChild(CINLabelFrame);
-  }
-
-  if (dataContent.DINValue === true) {
-    const DINLabelFrame = figma.createFrame();
-    formatLabelFrame(DINLabelFrame);
-    const DINLabel = figma.createText();
-    setFont(DINLabel);
-    DINLabel.characters = "DIN";
-    formatLabelText(DINLabel);
-    DINLabelFrame.appendChild(DINLabel);
-    labelSectionHeight += generateTableCellHeight;
-    labelSection.appendChild(DINLabelFrame);
-  }
-
-  if (dataContent.LLPINValue === true) {
-    const LLPINLabelFrame = figma.createFrame();
-    formatLabelFrame(LLPINLabelFrame);
-    const LLPINLabel = figma.createText();
-    setFont(LLPINLabel);
-    LLPINLabel.characters = "LLPIN";
-    formatLabelText(LLPINLabel);
-    LLPINLabelFrame.appendChild(LLPINLabel);
-    labelSectionHeight += generateTableCellHeight;
-    labelSection.appendChild(LLPINLabelFrame);
-  }
-
-  if (dataContent.TANValue === true) {
-    const TANLabelFrame = figma.createFrame();
-    formatLabelFrame(TANLabelFrame);
-    const TANLabel = figma.createText();
-    setFont(TANLabel);
-    TANLabel.characters = "TAN";
-    formatLabelText(TANLabel);
-    TANLabelFrame.appendChild(TANLabel);
-    labelSectionHeight += generateTableCellHeight;
-    labelSection.appendChild(TANLabelFrame);
-  }
-
-  labelSection.resize(generateTableLabelWidth, labelSectionHeight);
-  labelSection.layoutMode = "NONE"; //Removing autolayout from label section before adding to the table
-  tableFrameWidth += generateTableLabelWidth;
-  const tableFrameHeight = labelSectionHeight; //Height of table will be same as that of label or data section which will be same
-  tableFrame.appendChild(labelSection); //Appending label section to the table frame
-
-  // ------------Labels section defining over---------------------
-
-  //Creating user data content sections using for-loop for number of users requested from input
-  for (let i = 1; i <= userCount; i++) {
-    //Personal details
-    const fName = generateFirstName();
-    const lName = generateLastName();
-    const fullName = `${fName} ${lName}`;
-    const mobile = generateMobile();
-    const userEmail = generateEmail(fName, lName);
-    const dobContent = generateDoB();
-
-    // Location details
-    const stateName = generateState();
-    const cityName = generateCity(stateName);
-    const pinCode = generatePINCode(stateName);
-    const urbanAddress = generateUrbAddress(stateName, cityName);
-    const ruralAddress = generateRurAddress(stateName, cityName);
-
-    //Profession
-    let userProfession = "";
-    if (dataContent.ProfValue === true) {
-      let domain = msgData.profDomain;
-      userProfession = generateProf(domain);
-    }
-
-    //Personal IDs
-    const dl = generateDL(stateName);
-    const rc = generateRC(stateName);
-    const rcbh = generateRCBH();
-    const passport = generatePassport();
-    const UID = generateAadhar();
-    const pan = generatePAN(fName);
-    const voterId = generateVoterID();
-    const upin = generateUPIn(fName, lName);
-    const upim = generateUPIm(mobile);
-
-    // Business IDs
-    const cin = generateCIN(stateName);
-    const pani = generatePANi();
-    const gstin = generateGSTIN(stateName, pani);
-    const din = generateDIN();
-    const llpin = generateLLPIN();
-    const tan = generateTAN();
-
-    // ----------Values declaration over--------------
-
-    const dataSection = figma.createFrame(); //Section containing data items
-    dataSection.layoutMode = "VERTICAL"; //Vertical autolayout
-    dataSection.itemSpacing = 0;
-    dataSection.name = `User ${i}`;
-
-    //Add header for data sections
-    const userHeaderFrame = figma.createFrame();
-    formatUserHeaderFrame(userHeaderFrame);
-    const userHeaderText = figma.createText();
-    setFont(userHeaderText);
-    userHeaderText.characters = `User ${i}`;
-    formatUserHeaderText(userHeaderText);
-    userHeaderFrame.appendChild(userHeaderText);
-    dataSection.appendChild(userHeaderFrame);
-
-    if (dataContent.FirstNameValue === true) {
-      const firstnameTextFrame = figma.createFrame();
-      formatContentFrame(firstnameTextFrame);
-      const firstnameText = figma.createText();
-      setFont(firstnameText);
-      firstnameText.characters = `${fName}`;
-      formatContentText(firstnameText);
-      firstnameTextFrame.appendChild(firstnameText);
-      dataSection.appendChild(firstnameTextFrame);
-    }
-
-    if (dataContent.LastNameValue === true) {
-      const lastnameTextFrame = figma.createFrame();
-      formatContentFrame(lastnameTextFrame);
-      const lastnameText = figma.createText();
-      setFont(lastnameText);
-      lastnameText.characters = `${lName}`;
-      formatContentText(lastnameText);
-      lastnameTextFrame.appendChild(lastnameText);
-      dataSection.appendChild(lastnameTextFrame);
-    }
-
-    if (dataContent.FullNameValue === true) {
-      const fullnameTextFrame = figma.createFrame();
-      formatContentFrame(fullnameTextFrame);
-      const fullnameText = figma.createText();
-      setFont(fullnameText);
-      fullnameText.characters = `${fullName}`;
-      formatContentText(fullnameText);
-      fullnameTextFrame.appendChild(fullnameText);
-      dataSection.appendChild(fullnameTextFrame);
-    }
-
-    if (dataContent.DoBValue === true) {
-      const dobTextFrame = figma.createFrame();
-      formatContentFrame(dobTextFrame);
-      const dobText = figma.createText();
-      setFont(dobText);
-      dobText.characters = `${dobContent}`;
-      formatContentText(dobText);
-      dobTextFrame.appendChild(dobText);
-      dataSection.appendChild(dobTextFrame);
-    }
-
-    if (dataContent.EmailValue === true) {
-      const emailTextFrame = figma.createFrame();
-      formatContentFrame(emailTextFrame);
-      const emailText = figma.createText();
-      setFont(emailText);
-      emailText.characters = `${userEmail}`;
-      formatContentText(emailText);
-      emailTextFrame.appendChild(emailText);
-      dataSection.appendChild(emailTextFrame);
-    }
-
-    if (dataContent.MobileValue === true) {
-      const mobileTextFrame = figma.createFrame();
-      formatContentFrame(mobileTextFrame);
-      const mobileText = figma.createText();
-      setFont(mobileText);
-      mobileText.characters = `${mobile}`;
-      formatContentText(mobileText);
-      mobileTextFrame.appendChild(mobileText);
-      dataSection.appendChild(mobileTextFrame);
-    }
-
-    if (dataContent.ProfValue === true) {
-      const professionTextFrame = figma.createFrame();
-      formatContentFrame(professionTextFrame);
-      const professionText = figma.createText();
-      setFont(professionText);
-      professionText.characters = `${userProfession}`;
-      formatContentText(professionText);
-      professionTextFrame.appendChild(professionText);
-      dataSection.appendChild(professionTextFrame);
-    }
-
-    if (dataContent.RurAddressValue === true) {
-      const rurAddressTextFrame = figma.createFrame();
-      formatContentFrame(rurAddressTextFrame);
-      const rurAddressText = figma.createText();
-      setFont(rurAddressText);
-      rurAddressText.characters = `${ruralAddress}`;
-      formatContentText(rurAddressText);
-      rurAddressTextFrame.appendChild(rurAddressText);
-      dataSection.appendChild(rurAddressTextFrame);
-    }
-
-    if (dataContent.UrbAddressValue === true) {
-      const urbAddressTextFrame = figma.createFrame();
-      formatContentFrame(urbAddressTextFrame);
-      const urbAddressText = figma.createText();
-      setFont(urbAddressText);
-      urbAddressText.characters = `${urbanAddress}`;
-      formatContentText(urbAddressText);
-      urbAddressTextFrame.appendChild(urbAddressText);
-      dataSection.appendChild(urbAddressTextFrame);
-    }
-
-    if (dataContent.CityValue === true) {
-      const cityTextFrame = figma.createFrame();
-      formatContentFrame(cityTextFrame);
-      const cityText = figma.createText();
-      setFont(cityText);
-      cityText.characters = `${cityName}`;
-      formatContentText(cityText);
-      cityTextFrame.appendChild(cityText);
-      dataSection.appendChild(cityTextFrame);
-    }
-
-    if (dataContent.StateValue === true) {
-      const stateTextFrame = figma.createFrame();
-      formatContentFrame(stateTextFrame);
-      const stateText = figma.createText();
-      setFont(stateText);
-      stateText.characters = `${stateName}`;
-      formatContentText(stateText);
-      stateTextFrame.appendChild(stateText);
-      dataSection.appendChild(stateTextFrame);
-    }
-
-    if (dataContent.PINValue === true) {
-      const pinTextFrame = figma.createFrame();
-      formatContentFrame(pinTextFrame);
-      const pinText = figma.createText();
-      setFont(pinText);
-      pinText.characters = `${pinCode}`;
-      formatContentText(pinText);
-      pinTextFrame.appendChild(pinText);
-      dataSection.appendChild(pinTextFrame);
-    }
-
-    if (dataContent.PassValue === true) {
-      const passTextFrame = figma.createFrame();
-      formatContentFrame(passTextFrame);
-      const passText = figma.createText();
-      setFont(passText);
-      passText.characters = `${passport}`;
-      formatContentText(passText);
-      passTextFrame.appendChild(passText);
-      dataSection.appendChild(passTextFrame);
-    }
-
-    if (dataContent.UIDValue === true) {
-      const uidTextFrame = figma.createFrame();
-      formatContentFrame(uidTextFrame);
-      const uidText = figma.createText();
-      setFont(uidText);
-      uidText.characters = `${UID}`;
-      formatContentText(uidText);
-      uidTextFrame.appendChild(uidText);
-      dataSection.appendChild(uidTextFrame);
-    }
-
-    if (dataContent.PANValue === true) {
-      const panTextFrame = figma.createFrame();
-      formatContentFrame(panTextFrame);
-      const panText = figma.createText();
-      setFont(panText);
-      panText.characters = `${pan}`;
-      formatContentText(panText);
-      panTextFrame.appendChild(panText);
-      dataSection.appendChild(panTextFrame);
-    }
-
-    if (dataContent.UPInValue === true) {
-      const upinTextFrame = figma.createFrame();
-      formatContentFrame(upinTextFrame);
-      const upinText = figma.createText();
-      setFont(upinText);
-      upinText.characters = `${upin}`;
-      formatContentText(upinText);
-      upinTextFrame.appendChild(upinText);
-      dataSection.appendChild(upinTextFrame);
-    }
-
-    if (dataContent.UPImValue === true) {
-      const upimTextFrame = figma.createFrame();
-      formatContentFrame(upimTextFrame);
-      const upimText = figma.createText();
-      setFont(upimText);
-      upimText.characters = `${upim}`;
-      formatContentText(upimText);
-      upimTextFrame.appendChild(upimText);
-      dataSection.appendChild(upimTextFrame);
-    }
-
-    if (dataContent.DLValue === true) {
-      const dlTextFrame = figma.createFrame();
-      formatContentFrame(dlTextFrame);
-      const dlText = figma.createText();
-      setFont(dlText);
-      dlText.characters = `${dl}`;
-      formatContentText(dlText);
-      dlTextFrame.appendChild(dlText);
-      dataSection.appendChild(dlTextFrame);
-    }
-
-    if (dataContent.RCValue === true) {
-      const rcTextFrame = figma.createFrame();
-      formatContentFrame(rcTextFrame);
-      const rcText = figma.createText();
-      setFont(rcText);
-      rcText.characters = `${rc}`;
-      formatContentText(rcText);
-      rcTextFrame.appendChild(rcText);
-      dataSection.appendChild(rcTextFrame);
-    }
-    if (dataContent.RCBHValue === true) {
-      const rcbhTextFrame = figma.createFrame();
-      formatContentFrame(rcbhTextFrame);
-      const rcbhText = figma.createText();
-      setFont(rcbhText);
-      rcbhText.characters = `${rcbh}`;
-      formatContentText(rcbhText);
-      rcbhTextFrame.appendChild(rcbhText);
-      dataSection.appendChild(rcbhTextFrame);
-    }
-
-    if (dataContent.VoterValue === true) {
-      const voterTextFrame = figma.createFrame();
-      formatContentFrame(voterTextFrame);
-      const voterText = figma.createText();
-      setFont(voterText);
-      voterText.characters = `${voterId}`;
-      formatContentText(voterText);
-      voterTextFrame.appendChild(voterText);
-      dataSection.appendChild(voterTextFrame);
-    }
-
-    if (dataContent.PANiValue === true) {
-      const PANiTextFrame = figma.createFrame();
-      formatContentFrame(PANiTextFrame);
-      const PANiText = figma.createText();
-      setFont(PANiText);
-      PANiText.characters = `${pani}`;
-      formatContentText(PANiText);
-      PANiTextFrame.appendChild(PANiText);
-      dataSection.appendChild(PANiTextFrame);
-    }
-
-    if (dataContent.GSTINValue === true) {
-      const GSTINTextFrame = figma.createFrame();
-      formatContentFrame(GSTINTextFrame);
-      const GSTINText = figma.createText();
-      setFont(GSTINText);
-      GSTINText.characters = `${gstin}`;
-      formatContentText(GSTINText);
-      GSTINTextFrame.appendChild(GSTINText);
-      dataSection.appendChild(GSTINTextFrame);
-    }
-
-    if (dataContent.CINValue === true) {
-      const CINTextFrame = figma.createFrame();
-      formatContentFrame(CINTextFrame);
-      const CINText = figma.createText();
-      setFont(CINText);
-      CINText.characters = `${cin}`;
-      formatContentText(CINText);
-      CINTextFrame.appendChild(CINText);
-      dataSection.appendChild(CINTextFrame);
-    }
-
-    if (dataContent.DINValue === true) {
-      const DINTextFrame = figma.createFrame();
-      formatContentFrame(DINTextFrame);
-      const DINText = figma.createText();
-      setFont(DINText);
-      DINText.characters = `${din}`;
-      formatContentText(DINText);
-      DINTextFrame.appendChild(DINText);
-      dataSection.appendChild(DINTextFrame);
-    }
-
-    if (dataContent.LLPINValue === true) {
-      const LLPINTextFrame = figma.createFrame();
-      formatContentFrame(LLPINTextFrame);
-      const LLPINText = figma.createText();
-      setFont(LLPINText);
-      LLPINText.characters = `${llpin}`;
-      formatContentText(LLPINText);
-      LLPINTextFrame.appendChild(LLPINText);
-      dataSection.appendChild(LLPINTextFrame);
-    }
-
-    if (dataContent.TANValue === true) {
-      const TANTextFrame = figma.createFrame();
-      formatContentFrame(TANTextFrame);
-      const TANText = figma.createText();
-      setFont(TANText);
-      TANText.characters = `${tan}`;
-      formatContentText(TANText);
-      TANTextFrame.appendChild(TANText);
-      dataSection.appendChild(TANTextFrame);
-    }
-
-    const dataSectionWidth = generateTableDataWidth; //Constant already defined initially
-    const dataSectionHeight = labelSectionHeight; //Already calculated in the label section
-
-    dataSection.resize(dataSectionWidth, dataSectionHeight);
-    dataSection.layoutMode = "NONE"; //Removing autolayout from data section before adding to the table
-
-    tableFrameWidth += dataSectionWidth;
-    tableFrame.appendChild(dataSection); //Appending label section to the table frame
-  }
-
-  tableFrame.resize(tableFrameWidth, tableFrameHeight);
-  tableFrame.layoutMode = "NONE"; //Removing autolayout from main table frame before adding to canvas
-
-  //Putting the created frame on figma currentpage. Other parameters are used to add card to the scene, and also scroll and zoom to that card
-  figma.currentPage.appendChild(tableFrame);
-  nodes.push(tableFrame);
-  figma.currentPage.selection = nodes;
-  figma.viewport.scrollAndZoomIntoView(nodes);
-  figma.notify(`Table of ${userCount} users generated successfully.`, {
-    timeout: 2500,
-  });
-}
-
-//Function for generating JSON data from user details
-function generateJSON(msgData) {
-  const dataContent = msgData.chkData;
-  const userCount = msgData.noOfUsers;
-  const users: any[] = [];
-
-  //Creating user data content sections using for-loop for number of users requested from input
-  for (let i = 1; i <= userCount; i++) {
-    //Personal details
-    const fName = generateFirstName();
-    const lName = generateLastName();
-    const fullName = `${fName} ${lName}`;
-    const mobile = generateMobile();
-    const userEmail = generateEmail(fName, lName);
-    const dobContent = generateDoB();
-
-    // Location details
-    const stateName = generateState();
-    const cityName = generateCity(stateName);
-    const pinCode = generatePINCode(stateName);
-    const urbanAddress = generateUrbAddress(stateName, cityName);
-    const ruralAddress = generateRurAddress(stateName, cityName);
-
-    //Profession
-    let userProfession = "";
-    if (dataContent.ProfValue === true) {
-      let domain = msgData.profDomain;
-      userProfession = generateProf(domain);
-    }
-
-    //Personal IDs
-    const dl = generateDL(stateName);
-    const rc = generateRC(stateName);
-    const rcbh = generateRCBH();
-    const passport = generatePassport();
-    const UID = generateAadhar();
-    const pan = generatePAN(fName);
-    const voterId = generateVoterID();
-    const upin = generateUPIn(fName, lName);
-    const upim = generateUPIm(mobile);
-
-    // Business IDs
-    const cin = generateCIN(stateName);
-    const pani = generatePANi();
-    const gstin = generateGSTIN(stateName, pani);
-    const din = generateDIN();
-    const llpin = generateLLPIN();
-    const tan = generateTAN();
-
-    // Create user object with only selected fields
-    const user: any = {};
-
-    if (dataContent.FirstNameValue === true) {
-      user["First Name"] = fName;
-    }
-    if (dataContent.LastNameValue === true) {
-      user["Last Name"] = lName;
-    }
-    if (dataContent.FullNameValue === true) {
-      user["Full Name"] = fullName;
-    }
-    if (dataContent.DoBValue === true) {
-      user["Date of Birth"] = dobContent;
-    }
-    if (dataContent.EmailValue === true) {
-      user["Email"] = userEmail;
-    }
-    if (dataContent.MobileValue === true) {
-      user["Mobile"] = mobile;
-    }
-    if (dataContent.ProfValue === true) {
-      user["Profession"] = userProfession;
-    }
-    if (dataContent.RurAddressValue === true) {
-      user["Rural Address"] = ruralAddress;
-    }
-    if (dataContent.UrbAddressValue === true) {
-      user["Urban Address"] = urbanAddress;
-    }
-    if (dataContent.CityValue === true) {
-      user["City"] = cityName;
-    }
-    if (dataContent.StateValue === true) {
-      user["State"] = stateName;
-    }
-    if (dataContent.PINValue === true) {
-      user["PIN Code"] = pinCode;
-    }
-    if (dataContent.PassValue === true) {
-      user["Passport"] = passport;
-    }
-    if (dataContent.UIDValue === true) {
-      user["UID (Aadhar)"] = UID;
-    }
-    if (dataContent.PANValue === true) {
-      user["PAN (Personal)"] = pan;
-    }
-    if (dataContent.UPInValue === true) {
-      user["UPI (name)"] = upin;
-    }
-    if (dataContent.UPImValue === true) {
-      user["UPI (mobile)"] = upim;
-    }
-    if (dataContent.DLValue === true) {
-      user["Driving License"] = dl;
-    }
-    if (dataContent.RCValue === true) {
-      user["Vehicle Reg. (RC)"] = rc;
-    }
-    if (dataContent.RCBHValue === true) {
-      user["Vehicle Reg. (BH series)"] = rcbh;
-    }
-    if (dataContent.VoterValue === true) {
-      user["Voter ID"] = voterId;
-    }
-    if (dataContent.PANiValue === true) {
-      user["PAN (Corp)"] = pani;
-    }
-    if (dataContent.GSTINValue === true) {
-      user["GSTIN"] = gstin;
-    }
-    if (dataContent.CINValue === true) {
-      user["CIN"] = cin;
-    }
-    if (dataContent.DINValue === true) {
-      user["DIN"] = din;
-    }
-    if (dataContent.LLPINValue === true) {
-      user["LLPIN"] = llpin;
-    }
-    if (dataContent.TANValue === true) {
-      user["TAN"] = tan;
-    }
-
-    users.push(user);
-  }
-
-  return users;
-}
-
-//Function for generating CSV data from user details
-function generateCSV(msgData) {
-  const dataContent = msgData.chkData;
-  const userCount = msgData.noOfUsers;
-  const users: any[] = [];
-  const headers: string[] = [];
-
-  //Creating user data content sections using for-loop for number of users requested from input
-  for (let i = 1; i <= userCount; i++) {
-    //Personal details
-    const fName = generateFirstName();
-    const lName = generateLastName();
-    const fullName = `${fName} ${lName}`;
-    const mobile = generateMobile();
-    const userEmail = generateEmail(fName, lName);
-    const dobContent = generateDoB();
-
-    // Location details
-    const stateName = generateState();
-    const cityName = generateCity(stateName);
-    const pinCode = generatePINCode(stateName);
-    const urbanAddress = generateUrbAddress(stateName, cityName);
-    const ruralAddress = generateRurAddress(stateName, cityName);
-
-    //Profession
-    let userProfession = "";
-    if (dataContent.ProfValue === true) {
-      let domain = msgData.profDomain;
-      userProfession = generateProf(domain);
-    }
-
-    //Personal IDs
-    const dl = generateDL(stateName);
-    const rc = generateRC(stateName);
-    const rcbh = generateRCBH();
-    const passport = generatePassport();
-    const UID = generateAadhar();
-    const pan = generatePAN(fName);
-    const voterId = generateVoterID();
-    const upin = generateUPIn(fName, lName);
-    const upim = generateUPIm(mobile);
-
-    // Business IDs
-    const cin = generateCIN(stateName);
-    const pani = generatePANi();
-    const gstin = generateGSTIN(stateName, pani);
-    const din = generateDIN();
-    const llpin = generateLLPIN();
-    const tan = generateTAN();
-
-    // Create user object with only selected fields
-    const user: any = {};
-
-    if (dataContent.FirstNameValue === true) {
-      user["First Name"] = fName;
-      if (i === 1) headers.push("First Name");
-    }
-    if (dataContent.LastNameValue === true) {
-      user["Last Name"] = lName;
-      if (i === 1) headers.push("Last Name");
-    }
-    if (dataContent.FullNameValue === true) {
-      user["Full Name"] = fullName;
-      if (i === 1) headers.push("Full Name");
-    }
-    if (dataContent.DoBValue === true) {
-      user["Date of Birth"] = dobContent;
-      if (i === 1) headers.push("Date of Birth");
-    }
-    if (dataContent.EmailValue === true) {
-      user["Email"] = userEmail;
-      if (i === 1) headers.push("Email");
-    }
-    if (dataContent.MobileValue === true) {
-      user["Mobile"] = mobile;
-      if (i === 1) headers.push("Mobile");
-    }
-    if (dataContent.ProfValue === true) {
-      user["Profession"] = userProfession;
-      if (i === 1) headers.push("Profession");
-    }
-    if (dataContent.RurAddressValue === true) {
-      user["Rural Address"] = ruralAddress;
-      if (i === 1) headers.push("Rural Address");
-    }
-    if (dataContent.UrbAddressValue === true) {
-      user["Urban Address"] = urbanAddress;
-      if (i === 1) headers.push("Urban Address");
-    }
-    if (dataContent.CityValue === true) {
-      user["City"] = cityName;
-      if (i === 1) headers.push("City");
-    }
-    if (dataContent.StateValue === true) {
-      user["State"] = stateName;
-      if (i === 1) headers.push("State");
-    }
-    if (dataContent.PINValue === true) {
-      user["PIN Code"] = pinCode;
-      if (i === 1) headers.push("PIN Code");
-    }
-    if (dataContent.PassValue === true) {
-      user["Passport"] = passport;
-      if (i === 1) headers.push("Passport");
-    }
-    if (dataContent.UIDValue === true) {
-      user["UID (Aadhar)"] = UID;
-      if (i === 1) headers.push("UID (Aadhar)");
-    }
-    if (dataContent.PANValue === true) {
-      user["PAN (Personal)"] = pan;
-      if (i === 1) headers.push("PAN (Personal)");
-    }
-    if (dataContent.UPInValue === true) {
-      user["UPI (name)"] = upin;
-      if (i === 1) headers.push("UPI (name)");
-    }
-    if (dataContent.UPImValue === true) {
-      user["UPI (mobile)"] = upim;
-      if (i === 1) headers.push("UPI (mobile)");
-    }
-    if (dataContent.DLValue === true) {
-      user["Driving License"] = dl;
-      if (i === 1) headers.push("Driving License");
-    }
-    if (dataContent.RCValue === true) {
-      user["Vehicle Reg. (RC)"] = rc;
-      if (i === 1) headers.push("Vehicle Reg. (RC)");
-    }
-    if (dataContent.RCBHValue === true) {
-      user["Vehicle Reg. (BH series)"] = rcbh;
-      if (i === 1) headers.push("Vehicle Reg. (BH series)");
-    }
-    if (dataContent.VoterValue === true) {
-      user["Voter ID"] = voterId;
-      if (i === 1) headers.push("Voter ID");
-    }
-    if (dataContent.PANiValue === true) {
-      user["PAN (Corp)"] = pani;
-      if (i === 1) headers.push("PAN (Corp)");
-    }
-    if (dataContent.GSTINValue === true) {
-      user["GSTIN"] = gstin;
-      if (i === 1) headers.push("GSTIN");
-    }
-    if (dataContent.CINValue === true) {
-      user["CIN"] = cin;
-      if (i === 1) headers.push("CIN");
-    }
-    if (dataContent.DINValue === true) {
-      user["DIN"] = din;
-      if (i === 1) headers.push("DIN");
-    }
-    if (dataContent.LLPINValue === true) {
-      user["LLPIN"] = llpin;
-      if (i === 1) headers.push("LLPIN");
-    }
-    if (dataContent.TANValue === true) {
-      user["TAN"] = tan;
-      if (i === 1) headers.push("TAN");
-    }
-
-    users.push(user);
-  }
-
-  // Convert to CSV format
-  // Escape CSV values (handle commas, quotes, newlines)
-  const escapeCSV = (value: string): string => {
-    if (value === null || value === undefined) return "";
-    const stringValue = String(value);
-    if (
-      stringValue.includes(",") ||
-      stringValue.includes('"') ||
-      stringValue.includes("\n")
-    ) {
-      return `"${stringValue.replace(/"/g, '""')}"`;
-    }
-    return stringValue;
+  // Inside the plugin window the filled layers speak for themselves; only notes get a toast
+  const notes = tally.notes();
+  const n = tally.updated;
+  return {
+    message: `Filled ${n} layer${n === 1 ? "" : "s"} with ${FIELDS_BY_KEY[fieldKey].label}.${notes}`,
+    quiet: !notes,
   };
+}
 
-  // Build CSV string
-  let csvString = headers.map(escapeCSV).join(",") + "\n";
-
-  for (const user of users) {
-    const row = headers.map((header) => escapeCSV(user[header] || ""));
-    csvString += row.join(",") + "\n";
+/**
+ * Fills text layers whose names match a field ("Email", "Phone", "PAN"...).
+ * Each selected frame/card is one person; containers holding several cards
+ * are split so every card gets its own person (see fillByName.ts).
+ */
+async function fillByLayerNames(profDomain?: string): Promise<Outcome> {
+  const selection = figma.currentPage.selection;
+  if (selection.length === 0) {
+    return { message: "Select frames, cards or text layers to fill" };
   }
 
-  return csvString;
+  const groups = planFillByName(selection, fieldForLayerName);
+  if (groups.length === 0) {
+    return {
+      message:
+        'No text layers with matching names. Rename layers to e.g. "Email", "Phone" or "PAN".',
+    };
+  }
+
+  const tally = new WriteTally();
+  for (const group of groups) {
+    const person = new Person({ profDomain });
+    // Loose layers filled together share an id, so Regenerate keeps them one person
+    const personId =
+      !group.scope && group.texts.length > 1 ? newPersonId() : "";
+    for (const { node, field } of group.texts) {
+      const text = node as TextNode;
+      const status = await writeText(text, person.get(field));
+      tally.add(status);
+      if (status !== "failed") tagTextField(text, field, profDomain, personId);
+    }
+    if (group.scope) {
+      tagPersonScope(group.scope);
+      addRegenerateButton(group.scope);
+    }
+  }
+
+  const people = groups.length;
+  return {
+    message: `Filled ${tally.updated} layer${tally.updated === 1 ? "" : "s"} for ${people} ${
+      people === 1 ? "person" : "people"
+    }.${tally.notes()}`,
+  };
 }
 
-function formatLabelFrame(inputFrameNode) {
-  inputFrameNode.resize(generateTableLabelWidth, generateTableCellHeight);
-  inputFrameNode.fills = [
-    {
-      type: "SOLID",
-      color: { r: 0.976, g: 0.984, b: 1 },
-      // color: { r: 0.96, g: 0.96, b: 0.96 },
-    },
-  ];
-  inputFrameNode.strokes = [
-    {
-      type: "SOLID",
-      color: { r: 0.58, g: 0.698, b: 0.858 },
-      // color: { r: 0.6, g: 0.6, b: 0.6 },
-    },
-  ];
-  inputFrameNode.strokeWeight = 0.25;
-  inputFrameNode.strokeAlign = "CENTER";
+// ============================================================================
+// TABLE GENERATION
+// ============================================================================
+
+/**
+ * Puts a new node in the middle of what the user is looking at, to the right of anything
+ * already there (never on top of existing designs), selects it and scrolls to it.
+ */
+function placeAndReveal(node: SceneNode) {
+  const obstacles = figma.currentPage.children
+    .filter((child) => child !== node)
+    .map((child) => child.absoluteBoundingBox)
+    .filter((box): box is Rect => box !== null);
+  const spot = findFreeSpot(
+    centeredAt(figma.viewport.center, node.width, node.height),
+    obstacles,
+  );
+  node.x = spot.x;
+  node.y = spot.y;
+  figma.currentPage.selection = [node];
+
+  // Center on it at the current zoom, or zoom out only if it's too big to fit
+  const view = figma.viewport.bounds;
+  if (spot.width <= view.width && spot.height <= view.height) {
+    figma.viewport.center = {
+      x: spot.x + spot.width / 2,
+      y: spot.y + spot.height / 2,
+    };
+  } else {
+    figma.viewport.scrollAndZoomIntoView([node]);
+  }
 }
 
-function formatContentFrame(inputFrameNode) {
-  inputFrameNode.resize(generateTableDataWidth, generateTableCellHeight);
-  inputFrameNode.strokes = [
-    {
-      type: "SOLID",
-      color: { r: 0.58, g: 0.698, b: 0.858 },
-      // color: { r: 0.6, g: 0.6, b: 0.6},
-    },
-  ];
-  inputFrameNode.strokeWeight = 0.25;
-  inputFrameNode.strokeAlign = "CENTER";
-}
+/**
+ * Adds a table of users to the canvas: users as columns (one row per field) or users as
+ * rows. Frames with auto layout in Figma/Slides/Buzz, FigJam's own table in FigJam.
+ */
+async function generateTable(
+  selection: FieldSelection,
+  userCount: number,
+  profDomain?: string,
+  layout: TableLayout = "columns",
+) {
+  const fields = selectedTableFields(selection);
+  if (fields.length === 0) {
+    figma.notify("Please select at least one field", { timeout: 1500 });
+    return;
+  }
 
-function formatLabelHeaderFrame(inputFrameNode) {
-  inputFrameNode.resize(generateTableLabelWidth, generateTableHeaderHeight);
-  inputFrameNode.fills = [
-    {
-      type: "SOLID",
-      color: { r: 0.858, g: 0.925, b: 1 },
-    },
-  ];
-  inputFrameNode.strokes = [
-    {
-      type: "SOLID",
-      color: { r: 0.58, g: 0.698, b: 0.858 },
-      // color: { r: 0.6, g: 0.6, b: 0.6 },
-    },
-  ];
-  inputFrameNode.strokeWeight = 0.25;
-  inputFrameNode.strokeAlign = "CENTER";
-}
+  const users = Array.from({ length: userCount }, () => {
+    const person = new Person({ profDomain });
+    return Object.fromEntries(fields.map((f) => [f.key, person.get(f.key)]));
+  });
+  const matrix = buildTableMatrix(fields, users, layout);
+  const widths = columnWidths(fields, userCount, layout);
 
-function formatUserHeaderFrame(inputFrameNode) {
-  inputFrameNode.resize(generateTableDataWidth, generateTableHeaderHeight);
-  inputFrameNode.fills = [
-    {
-      type: "SOLID",
-      color: { r: 0.858, g: 0.925, b: 1 },
-    },
-  ];
-  inputFrameNode.strokes = [
-    {
-      type: "SOLID",
-      // color: { r: 0.58, g: 0.698, b: 0.858 },
-      color: { r: 0.6, g: 0.6, b: 0.6 },
-    },
-  ];
-  inputFrameNode.strokeWeight = 0.25;
-  inputFrameNode.strokeAlign = "CENTER";
-}
+  let table: SceneNode;
+  if (figma.editorType === "figjam") {
+    table = await createFigJamTable(matrix, widths);
+  } else {
+    await loadTableFonts();
+    table = createFrameTable(matrix, widths, profDomain);
+  }
+  figma.currentPage.appendChild(table);
+  placeAndReveal(table);
 
-function formatLabelText(inputTextNode) {
-  setFontLight(inputTextNode);
-  inputTextNode.fontSize = 8;
-  inputTextNode.fills = [
+  figma.notify(
+    `Table of ${userCount} user${userCount === 1 ? "" : "s"} added.`,
     {
-      type: "SOLID",
-      color: { r: 0.2, g: 0.2, b: 0.2 },
+      timeout: 2500,
     },
-  ];
-  inputTextNode.x += 3;
-  inputTextNode.resize(generateTableLabelWidth - 6, generateTableCellHeight);
-  inputTextNode.textAlignHorizontal = "LEFT";
-  inputTextNode.textAlignVertical = "CENTER";
-}
-
-function formatContentText(inputTextNode) {
-  setFont(inputTextNode);
-  inputTextNode.fontSize = 9;
-  inputTextNode.fills = [
-    {
-      type: "SOLID",
-      color: { r: 0.2, g: 0.2, b: 0.2 },
-    },
-  ];
-  inputTextNode.x += 4;
-  inputTextNode.resize(generateTableDataWidth - 8, generateTableCellHeight);
-  inputTextNode.textAlignHorizontal = "LEFT";
-  inputTextNode.textAlignVertical = "CENTER";
-}
-
-function formatLabelHeaderText(inputTextNode) {
-  setFontLight(inputTextNode);
-  inputTextNode.fontSize = 8;
-  inputTextNode.fills = [
-    {
-      type: "SOLID",
-      color: { r: 0.2, g: 0.2, b: 0.2 },
-    },
-  ];
-  inputTextNode.x += 3;
-  inputTextNode.resize(generateTableLabelWidth - 6, generateTableHeaderHeight);
-  inputTextNode.textAlignHorizontal = "LEFT";
-  inputTextNode.textAlignVertical = "CENTER";
-}
-
-function formatUserHeaderText(inputTextNode) {
-  setFontLight(inputTextNode);
-  inputTextNode.fontSize = 8;
-  inputTextNode.fills = [
-    {
-      type: "SOLID",
-      color: { r: 0.2, g: 0.2, b: 0.2 },
-    },
-  ];
-  inputTextNode.x += 4;
-  inputTextNode.resize(generateTableDataWidth - 8, generateTableHeaderHeight);
-  inputTextNode.textAlignHorizontal = "LEFT";
-  inputTextNode.textAlignVertical = "CENTER";
+  );
 }

@@ -45,7 +45,8 @@ const SecondTab = ({ onClick, onExportJSON, onExportCSV }) => {
 
   const incrementUsers = () => {
     setUsersInput((prev) => {
-      const newValue = Number(prev) + 1;
+      // 10,000 is the export limit; the plugin enforces a lower limit for canvas tables
+      const newValue = Math.min(10000, Number(prev) + 1);
       return newValue;
     });
   };
@@ -677,6 +678,8 @@ const SecondTab = ({ onClick, onExportJSON, onExportCSV }) => {
                 id="noOfUsers"
                 value={usersInput}
                 min={1}
+                max={10000}
+                step={1}
                 onInput={inputChangeHandler}
               />
               <button

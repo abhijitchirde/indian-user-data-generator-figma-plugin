@@ -203,7 +203,11 @@ Each card is tagged as a person scope and gets relaunch data, so 3.1's button re
 as one consistent person. UI: a "Fill by layer names" card at the top of the first tab, using
 the profession domain from the dropdown.
 
-**3.5** New `regenerate` UI message that reuses the same function as the relaunch command.
+**3.5** New `regenerate-selection` UI message that reuses the same function as the relaunch
+command. The button, "Regenerate selected data", sits in its own section at the bottom of the
+first tab, because it works on anything the plugin filled, not only "Fill by layer names". The
+data-type groups scroll above it, and the Buzz note is one line under it. The layout was checked
+at 360×620 with headless Edge.
 
 ### Phase 4: Data realism
 
@@ -262,7 +266,8 @@ Import `manifest.json` via *Plugins → Development → Import plugin from manif
 - [ ] Fill by layer names: select a list frame with several cards, so each card gets a different person
 - [ ] Fill by layer names inside component instances
 - [ ] After fill by layer names, select the card: "Regenerate data" refreshes it as one person
-- [ ] "Regenerate" button in the plugin window does the same as the properties-panel button;
+- [x] Regenerate button in the plugin window regenerates previously filled layers (checked by Abhijit)
+- [ ] "Regenerate selected data" (now at the bottom of the first tab) does the same as the properties-panel button;
       with nothing filled selected it says "Nothing to regenerate"
 - [ ] Both tabs look and behave as before (same buttons, checkboxes, order, counts)
 - [ ] Table tab: change the profession domain, then click "Default": dropdown shows "Random" again

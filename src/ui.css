@@ -223,32 +223,57 @@ main {
   display: flex;
   flex-direction: column;
   gap: var(--figma-space-xs);
-  margin: 0 var(--figma-space-xs) var(--figma-space-md);
+  flex-shrink: 0;
+  margin: 0 var(--figma-space-xs) var(--figma-space-sm);
   padding: var(--figma-space-sm);
   border: 1px solid var(--figma-color-border);
   border-radius: var(--figma-radius-md);
   background-color: var(--figma-color-bg-secondary);
 }
 
-.smart-fill-actions {
-  display: flex;
-  gap: var(--figma-space-xs);
-}
-
-.smart-fill-button {
-  flex: 1;
-}
-
-/* Two classes so it wins over .button-json's fixed width, defined further down */
-.smart-fill-actions .smart-fill-regenerate {
-  flex: 0 0 auto;
-  width: auto;
-  min-width: 0;
-  padding: 0 var(--figma-space-sm);
+/* Two classes so it wins over .button-large's flex: 1, defined further down */
+.smart-fill .smart-fill-button {
+  flex: none;
+  width: 100%;
 }
 
 .smart-fill-hint {
   margin: 0;
+  font-size: var(--figma-font-size-xs);
+  line-height: 1.4;
+  color: var(--figma-color-text-secondary);
+}
+
+/* First tab: the data-type groups scroll, so the regenerate section stays at the bottom */
+.first-tab > p {
+  flex-shrink: 0;
+}
+
+.first-tab .buttons-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.regenerate-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--figma-space-xs);
+  flex-shrink: 0;
+  margin: var(--figma-space-sm) var(--figma-space-xs) 0;
+  padding-top: var(--figma-space-sm);
+  border-top: 1px solid var(--figma-color-border);
+}
+
+/* Two classes so it wins over .button-json's fixed width, defined further down */
+.regenerate-section .regenerate-button {
+  flex: none;
+  width: 100%;
+  min-width: 0;
+}
+
+.first-tab .buzz-note {
+  margin: var(--figma-space-sm) var(--figma-space-xs) 0;
   font-size: var(--figma-font-size-xs);
   line-height: 1.4;
   color: var(--figma-color-text-secondary);

@@ -19,26 +19,17 @@ const FirstTab = ({ onClick, onFillByName, onRegenerate }) => {
   return (
     <>
       <div className="tabcontent">
-        <div className="tab-container">
+        <div className="tab-container first-tab">
           <div className="smart-fill">
-            <div className="smart-fill-actions">
-              <button
-                className="button-large smart-fill-button"
-                onClick={() => onFillByName(selected)}
-              >
-                Fill by layer names
-              </button>
-              <button
-                className="button-large button-json smart-fill-regenerate"
-                onClick={onRegenerate}
-                title="Replace data in selected layers filled by this plugin"
-              >
-                Regenerate
-              </button>
-            </div>
+            <button
+              className="button-large smart-fill-button"
+              onClick={() => onFillByName(selected)}
+            >
+              Fill by layer names
+            </button>
             <p className="smart-fill-hint">
-              Select a frame or cards. Text layers named "Email", "Phone",
-              "PAN"… get one matching person per card.
+              Select a card or its text layers. Layers named "Name", "Email",
+              "Phone"… get one matching person.
             </p>
           </div>
           <p
@@ -50,8 +41,7 @@ const FirstTab = ({ onClick, onFillByName, onRegenerate }) => {
               width: "100%",
             }}
           >
-            Please select the text layers to add user data to and click below to
-            generate.
+            Or select text layers and pick a data type below.
           </p>
           <div className="buttons-list">
             {GROUPS.map((group) => (
@@ -92,30 +82,20 @@ const FirstTab = ({ onClick, onFillByName, onRegenerate }) => {
               </Accordion>
             ))}
           </div>
-        </div>
 
-        <div className="error-note">
-          <p
-            style={{
-              textAlign: "center",
-              fontSize: "var(--figma-font-size-xs)",
-              color: "#6f6f70",
-              fontWeight: "bold",
-            }}
-          >
-            Using Figma Buzz?
-          </p>
-          <p
-            style={{
-              textAlign: "center",
-              fontSize: "var(--figma-font-size-xs)",
-              color: "#6f6f70",
-              padding: "0 var(--figma-space-sm) 0.5rem",
-              width: "100%",
-            }}
-          >
-            Please click the "Open in a modal" icon above for a better
-            experience.
+          <div className="regenerate-section">
+            <button
+              className="button-large button-json regenerate-button"
+              onClick={onRegenerate}
+              title="Replace the data in selected layers that this plugin filled before"
+            >
+              Regenerate selected data
+            </button>
+          </div>
+
+          <p className="buzz-note">
+            <strong>Using Figma Buzz?</strong> Open the plugin in a modal for
+            more room.
           </p>
         </div>
       </div>

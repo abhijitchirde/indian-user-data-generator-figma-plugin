@@ -13,6 +13,8 @@ Status legend: ✅ done · 🚧 in progress · ⏳ not started
 
 - One commit per feature. Each commit passes typecheck, tests and build on its own.
 - The tracker below is updated in the same commit as the feature.
+- User-facing changes (features, button names, wording) also update `README.md` and
+  `figma-page-description.md` (the Figma Community listing text) in the same commit.
 - Commit message format:
 
   ```text

@@ -1,79 +1,77 @@
 # Figma Design System Implementation
 
-This document describes the implementation of Figma design system tokens and dark mode support for the Indian User Data Generator plugin.
+This document describes the design tokens and light/dark theme support of the Indian User Data Generator plugin UI.
 
-## Features Added
+## Features
 
 ### 1. Design System Tokens
 
-- **Colors**: Complete color palette with light and dark theme variants
+- **Colors**: The plugin's own palette, with light and dark variants
 - **Typography**: Font family and size tokens
 - **Spacing**: Consistent spacing scale
 - **Border Radius**: Standardized border radius values
 - **Shadows**: Elevation shadows for different levels
 
-### 2. Dark Mode Support
+### 2. Theme Support
 
-- Automatic theme detection based on Figma environment
-- System preference fallback
-- Smooth transitions between themes
-- CSS custom properties for easy theme switching
-- **Manual theme toggle**: Switch between light and dark themes
-
-### 3. Theme Detection
-
-- Detects Figma vs FigJam environment
-- Listens for system theme changes
-- Provides theme information to UI components
-- **Toggle functionality**: Manual theme switching with proper state management
+- **Auto** (default): follows Figma's real light or dark theme
+- **Light** / **Dark**: manual override from the footer theme button
+- The choice is saved per user and remembered when the plugin is reopened
+- Smooth 0.2s transitions between themes
 
 ## Implementation Details
 
+### Where the theme comes from
+
+`src/code.ts` opens the UI with `themeColors: true`:
+
+```typescript
+figma.showUI(__html__, { width: 360, height: 700, themeColors: true });
+```
+
+With `themeColors`, Figma adds a `figma-light` or `figma-dark` class to the UI's `<html>` and keeps it up to date when the user switches Figma's theme. Figma also injects its own `--figma-color-*` values. This plugin keeps its own palette, so those injected values are never used (see below).
+
 ### CSS Custom Properties
 
-The design system uses CSS custom properties (CSS variables) defined in `src/ui.css`:
+The tokens are defined in `src/ui.css`:
 
 ```css
-:root {
-  /* Light theme colors */
-  --figma-color-bg: #ffffff;
+/* Light palette (and typography, spacing, radius, shadows) */
+html:root {
+  --figma-color-bg: #f8fafc;
   --figma-color-text: #000000;
   /* ... more tokens */
 }
 
-[data-theme="dark"] {
-  /* Dark theme overrides */
+/* Dark palette: Figma is dark and the user didn't pick Light, or the user picked Dark */
+html.figma-dark:not([data-theme="light"]),
+html[data-theme="dark"] {
+  color-scheme: dark;
   --figma-color-bg: #2c2c2c;
   --figma-color-text: #ffffff;
   /* ... more tokens */
 }
 ```
 
-### Theme Hook
+`html:root` is more specific than the `:root` / `.figma-dark` rules Figma injects, so the plugin's palette always wins. Figma's class only decides *which* palette is used.
 
-The `useFigmaTheme` hook (`src/hooks/useFigmaTheme.ts`) provides:
+### Theme preference
 
-- Current theme state
-- Theme detection logic
-- Automatic theme application
-- **toggleTheme function**: Manual theme switching
+The footer theme button cycles **🌗 Auto → ☀️ Light → 🌙 Dark**. The tooltip names the current and the next theme.
 
-```typescript
-const { theme, isDark, toggleTheme } = useFigmaTheme();
-```
-
-### Code Integration
-
-The main code file (`src/code.ts`) handles theme requests:
+- `src/hooks/useThemePreference.ts` holds the preference and sets `data-theme` on `<html>`: no attribute for Auto, `light` or `dark` otherwise.
+- The preference is stored with `figma.clientStorage` (key `themePreference`). The UI iframe can't rely on `localStorage` inside Figma.
 
 ```typescript
-if (msg.type === "get-theme") {
-  figma.ui.postMessage({
-    type: "theme-changed",
-    theme: figma.editorType === "figma" ? "light" : "dark",
-  });
-}
+const { preference, cycle } = useThemePreference(); // "auto" | "light" | "dark"
 ```
+
+Messages between the UI and `src/code.ts`:
+
+| UI → plugin | Plugin → UI |
+| --- | --- |
+| `get-theme-pref` (on open) | `theme-pref` with `value` (`"auto"` if nothing saved) |
+| `set-theme-pref` with `value` (on click) | none |
 
 ## Usage
 
@@ -99,35 +97,16 @@ Replace hardcoded values with design system tokens:
 }
 ```
 
-### Theme Detection
-
-The theme is automatically detected and applied. Components can access theme information:
-
-```typescript
-import { useFigmaTheme } from "./hooks/useFigmaTheme";
-
-function MyComponent() {
-  const { theme, isDark, toggleTheme } = useFigmaTheme();
-
-  return (
-    <div className={isDark ? "dark-theme" : "light-theme"}>
-      <p>Current theme: {theme}</p>
-      <button onClick={toggleTheme}>
-        Switch to {isDark ? "light" : "dark"} mode
-      </button>
-    </div>
-  );
-}
-```
+Components don't need to know the current theme: every color comes from a token, and the tokens switch with the theme.
 
 ## Design System Tokens
 
 ### Colors
 
-- `--figma-color-bg`: Background colors
-- `--figma-color-text`: Text colors
-- `--figma-color-border`: Border colors
-- `--figma-color-bg-brand`: Brand/primary colors
+- `--figma-color-bg`, `-bg-secondary`, `-bg-tertiary`: Background colors
+- `--figma-color-text`, `-text-secondary`, `-text-tertiary`, `-text-disabled`: Text colors
+- `--figma-color-border`, `-border-strong`: Border colors
+- `--figma-color-bg-brand` (+ `-hover`, `-pressed`), `--figma-color-text-brand`: Brand/primary colors
 
 ### Typography
 
@@ -146,26 +125,22 @@ function MyComponent() {
 
 - `--figma-shadow-*`: Shadow values (small, medium, large)
 
-## Testing
+## Footer
 
-A theme toggle component is included for testing purposes. It appears in the bottom section between the disclaimer and credits.
+Same layout as the author's other plugins (e.g. desi-ipsum):
 
-### Theme Toggle Features:
+- Left: small square icon buttons (`.icon-button`, 25×25px): ⚠️ disclaimer and the theme button
+- Right: "by Abhijit Chirde" credit
 
-- **Visual indicator**: Shows current theme (☀️ for light, 🌙 for dark)
-- **Hover tooltip**: Displays "Switch to [opposite] theme"
-- **Smooth transitions**: 0.2s ease transitions between themes
-- **Proper state management**: Uses React state and callbacks for reliable toggling
+## Testing outside Figma
+
+Opening `dist/ui.html` in a browser shows the light palette (no `figma-dark` class). To preview dark, add the class
+in the browser's dev tools: `document.documentElement.classList.add("figma-dark")`.
 
 ## Benefits
 
 1. **Consistency**: All UI elements use the same design tokens
 2. **Maintainability**: Easy to update colors and styles globally
 3. **Accessibility**: Proper contrast ratios in both themes
-4. **User Experience**: Smooth transitions and familiar Figma-like appearance
+4. **User Experience**: Follows Figma's theme, with a remembered manual override
 5. **Future-proof**: Easy to add new themes or modify existing ones
-6. **Manual Control**: Users can override automatic theme detection
-
-## Browser Support
-
-This implementation uses CSS custom properties, which are supported in all modern browsers. For older browsers, consider adding fallback values.

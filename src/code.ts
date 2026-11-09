@@ -40,7 +40,8 @@ if (figma.command === REGENERATE_COMMAND) {
   );
 } else {
   //Show UI on figma canvas
-  figma.showUI(__html__, { width: 360, height: 620 });
+  // 700 fits the tallest group (Personal IDs) open in both tabs without scrolling
+  figma.showUI(__html__, { width: 360, height: 700 });
   figma.ui.onmessage = handleMessage;
 }
 

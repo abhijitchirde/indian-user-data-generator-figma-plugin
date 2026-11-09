@@ -207,7 +207,8 @@ the profession domain from the dropdown.
 command. The button, "Regenerate selected data", sits in its own section at the bottom of the
 first tab, because it works on anything the plugin filled, not only "Fill by layer names". The
 data-type groups scroll above it, and the Buzz note is one line under it. The layout was checked
-at 360×620 with headless Edge.
+at 360×620 with headless Edge. The window was then raised to 360×700, so the tallest group
+(Personal IDs) fits open in both tabs without scrolling, with room for Phase 4's new fields.
 
 ### Phase 4: Data realism
 

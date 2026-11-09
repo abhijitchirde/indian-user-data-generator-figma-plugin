@@ -16,8 +16,14 @@ describe("sanitizePrefs", () => {
       tableSelection: tableSelection("all"),
       tableUsers: 25,
       tableDomain: "Finance",
+      tableSeed: "demo-2026",
     };
     expect(sanitizePrefs(stored)).toEqual(stored);
+  });
+
+  test("seed is text of at most 40 characters", () => {
+    expect(sanitizePrefs({ tableSeed: 42 }).tableSeed).toBe("");
+    expect(sanitizePrefs({ tableSeed: "x".repeat(60) }).tableSeed).toHaveLength(40);
   });
 
   test("unknown or broken values fall back to defaults", () => {

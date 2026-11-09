@@ -111,7 +111,7 @@ function App() {
       {
         pluginMessage: {
           type: "generate-table",
-          data: { chkData, noOfUsers, profDomain },
+          data: { chkData, noOfUsers, profDomain, seed: prefs?.tableSeed },
         },
       },
       "*"
@@ -124,7 +124,7 @@ function App() {
       {
         pluginMessage: {
           type: "export-json",
-          data: { chkData, noOfUsers, profDomain },
+          data: { chkData, noOfUsers, profDomain, seed: prefs?.tableSeed },
         },
       },
       "*"
@@ -137,7 +137,7 @@ function App() {
       {
         pluginMessage: {
           type: "export-csv",
-          data: { chkData, noOfUsers, profDomain },
+          data: { chkData, noOfUsers, profDomain, seed: prefs?.tableSeed },
         },
       },
       "*"
@@ -149,7 +149,7 @@ function App() {
       {
         pluginMessage: {
           type: format === "json" ? "copy-json" : "copy-tsv",
-          data: { chkData, noOfUsers: +users, profDomain },
+          data: { chkData, noOfUsers: +users, profDomain, seed: prefs?.tableSeed },
         },
       },
       "*"
@@ -184,6 +184,8 @@ function App() {
           onUsersChange={(tableUsers) => update({ tableUsers })}
           domain={prefs.tableDomain}
           onDomainChange={(tableDomain) => update({ tableDomain })}
+          seed={prefs.tableSeed}
+          onSeedChange={(tableSeed) => update({ tableSeed })}
         />
       )}
 

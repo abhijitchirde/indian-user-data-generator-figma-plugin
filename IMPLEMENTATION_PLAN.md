@@ -85,7 +85,7 @@ Deferred: Abhijit chose to do Phase 5 first.
 - [x] 5.2 Persist UI choices with `figma.clientStorage` (theme, open tab, table fields, user count, both profession domains)
 - [x] 5.3 Copy-to-clipboard next to JSON/CSV download
 - [x] 5.4 Quick actions via manifest `parameters`
-- [ ] 5.5 Seeded randomness
+- [x] 5.5 Seeded randomness
 - [ ] 5.6 Auto-layout canvas table, "rows = users" layout, native FigJam table
 
 ---
@@ -258,7 +258,15 @@ at 360×620 with headless Edge. The window was then raised to 360×700, so the t
   window. `fillSelection` / `fillByLayerNames` return an `Outcome` message instead of calling
   `figma.notify`, so the same text works as a toast and as the `closePlugin` message.
   Professions from quick actions use the "Random" domain.
-- **5.5** Small seeded PRNG (mulberry32) replacing `Math.random` behind a `rng()` helper. Optional seed input.
+- **5.5** All generators draw from `rng()` (`src/functions/random.ts`) instead of `Math.random`.
+  `withSeed(seed, fn)` swaps in mulberry32 seeded with an FNV-1a hash of the text for the
+  duration of a synchronous callback, then restores it (also after an error). An empty seed means
+  random. A "Seed" field (optional, saved with the other choices) sits under "Number of users" in
+  "Create user sets". It applies to the canvas table, JSON, CSV and both copies. The table now
+  generates all its users first, in the same order as `generateRecords`, so one seed gives the
+  same users everywhere, and the first N users don't change when more are asked for. Filling
+  text layers and Regenerate stay random. Limitation: dates and ID years are relative to the
+  current year, so a seed reproduces the same users within a calendar year.
 - **5.6** Table built with auto layout (hug height, fixed column width, wrapped text). Option for
   users as rows. `figma.createTable()` when `figma.editorType === "figjam"`.
 
@@ -315,6 +323,8 @@ Import `manifest.json` via *Plugins → Development → Import plugin from manif
       layers without opening the plugin; "aadhaar" finds UID (Aadhar)
 - [ ] Quick actions: "Fill by layer names" and "Regenerate selected data" work on the selection
 - [ ] Opening the plugin from the Plugins menu still shows the window
+- [ ] Seed "demo": the table, JSON and CSV show the same users; making the table again with the
+      same seed gives the same users; an empty seed gives new users each time
 - [ ] "Copy: JSON" puts formatted JSON on the clipboard, with a "Copied N users as JSON" toast
 - [ ] "Copy: For spreadsheets" pastes into Google Sheets / Excel with one value per cell
       (addresses with commas stay in one cell)

@@ -652,6 +652,34 @@ div label input:checked + span {
   appearance: textfield;
 }
 
+/* "Number of users" and "Seed" labels share a width, so the controls line up */
+.separate-button-div .input-label {
+  min-width: 7.2rem;
+  text-align: right;
+}
+
+/* Optional seed, same width as the users stepper above it */
+.seed-input {
+  width: calc(4.5rem + 4rem + 2px);
+  height: 1.8rem;
+  padding: 0 var(--figma-space-sm);
+  font-family: var(--figma-font-family);
+  font-size: var(--figma-font-size-xs);
+  color: var(--figma-color-text);
+  background-color: var(--figma-color-bg);
+  border: 1px solid var(--figma-color-border-strong);
+  border-radius: var(--figma-radius-lg);
+}
+
+.seed-input::placeholder {
+  color: var(--figma-color-text-tertiary);
+}
+
+.seed-input:focus {
+  outline: none;
+  border-color: var(--figma-color-border-focus);
+}
+
 .user-input::-webkit-outer-spin-button,
 .user-input::-webkit-inner-spin-button {
   -webkit-appearance: none;

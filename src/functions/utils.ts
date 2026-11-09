@@ -1,6 +1,8 @@
+import { rng } from "./random";
+
 //finding a number in range (incl low and high)
 export function numBetween(low: number, high: number) {
-  return Math.floor(Math.random() * (high - low + 1)) + low;
+  return Math.floor(rng() * (high - low + 1)) + low;
 }
 
 // Table cells are created by the plugin, so they use Roboto (loaded by loadTableFonts)

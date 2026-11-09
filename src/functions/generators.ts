@@ -1,4 +1,5 @@
 import { dataSet } from "../data/dataSet";
+import { rng } from "./random";
 import { numBetween } from "./utils";
 
 const thisYear = () => new Date().getFullYear();
@@ -13,7 +14,7 @@ const compact = (value: string) => value.replace(/[^A-Za-z0-9]/g, "");
 export function generateFirstName() {
   let firstName =
     dataSet["FirstName"][
-      Math.floor(Math.random() * dataSet["FirstName"].length)
+      Math.floor(rng() * dataSet["FirstName"].length)
     ];
   return `${firstName}`;
 }
@@ -21,7 +22,7 @@ export function generateFirstName() {
 //Last name
 export function generateLastName() {
   let lastName =
-    dataSet["LastName"][Math.floor(Math.random() * dataSet["LastName"].length)];
+    dataSet["LastName"][Math.floor(rng() * dataSet["LastName"].length)];
   return `${lastName}`;
 }
 
@@ -38,11 +39,11 @@ export function generateEmail(fName?: string, lName?: string) {
 
   let em =
     dataSet["EmailDomain"][
-      Math.floor(Math.random() * dataSet["EmailDomain"].length)
+      Math.floor(rng() * dataSet["EmailDomain"].length)
     ];
 
   let end =
-    dataSet["EmailEnd"][Math.floor(Math.random() * dataSet["EmailEnd"].length)];
+    dataSet["EmailEnd"][Math.floor(rng() * dataSet["EmailEnd"].length)];
 
   let forRandom = [
     "1",
@@ -62,7 +63,7 @@ export function generateEmail(fName?: string, lName?: string) {
     "4",
     "4",
   ];
-  let toss = forRandom[Math.floor(Math.random() * forRandom.length)];
+  let toss = forRandom[Math.floor(rng() * forRandom.length)];
   let email = "";
 
   if (toss === "1") {
@@ -86,15 +87,15 @@ export function generateEmail(fName?: string, lName?: string) {
 // Adults aged 18-80 as of the current year
 export function generateDoB() {
   let year = numBetween(thisYear() - 80, thisYear() - 18);
-  let month = dataSet["months"][Math.floor(Math.random() * 12)];
+  let month = dataSet["months"][Math.floor(rng() * 12)];
   let date = "";
 
   if (month === "02") {
     if (year % 4 === 0) {
-      date = dataSet["dates"][Math.floor(Math.random() * 29)];
+      date = dataSet["dates"][Math.floor(rng() * 29)];
       return `${date}-${month}-${year}`;
     } else {
-      date = dataSet["dates"][Math.floor(Math.random() * 28)];
+      date = dataSet["dates"][Math.floor(rng() * 28)];
       return `${date}-${month}-${year}`;
     }
   } else if (
@@ -103,10 +104,10 @@ export function generateDoB() {
     month === "09" ||
     month === "11"
   ) {
-    date = dataSet["dates"][Math.floor(Math.random() * 30)];
+    date = dataSet["dates"][Math.floor(rng() * 30)];
     return `${date}-${month}-${year}`;
   } else {
-    date = dataSet["dates"][Math.floor(Math.random() * 31)];
+    date = dataSet["dates"][Math.floor(rng() * 31)];
     return `${date}-${month}-${year}`;
   }
 }
@@ -117,17 +118,17 @@ export function generateProf(domain) {
   if (domain === "Random") {
     let domainRan =
       dataSet["RandomSelector"][
-        Math.floor(Math.random() * dataSet["RandomSelector"].length)
+        Math.floor(rng() * dataSet["RandomSelector"].length)
       ];
     let prof =
       dataSet[`${domainRan}`][
-        Math.floor(Math.random() * dataSet[`${domainRan}`].length)
+        Math.floor(rng() * dataSet[`${domainRan}`].length)
       ];
     return `${prof}`;
   } else {
     let prof =
       dataSet[`${domain}`][
-        Math.floor(Math.random() * dataSet[`${domain}`].length)
+        Math.floor(rng() * dataSet[`${domain}`].length)
       ];
     return `${prof}`;
   }
@@ -137,7 +138,7 @@ export function generateProf(domain) {
 // State
 export function generateState() {
   let state =
-    dataSet["State"][Math.floor(Math.random() * dataSet["State"].length)];
+    dataSet["State"][Math.floor(rng() * dataSet["State"].length)];
   return `${state}`;
 }
 
@@ -146,7 +147,7 @@ export function generateCity(stateName?: string) {
   let state = stateName ?? generateState();
   let city =
     dataSet[`${state}`][
-      Math.floor(Math.random() * (dataSet[`${state}`].length - 4)) + 4
+      Math.floor(rng() * (dataSet[`${state}`].length - 4)) + 4
     ];
   return `${city}`;
 }
@@ -176,32 +177,32 @@ export function generateRurAddress(
   let city = cityName ?? generateCity(state);
   let landmarkConj =
     dataSet["LandmarkConjunction"][
-      Math.floor(Math.random() * dataSet["LandmarkConjunction"].length)
+      Math.floor(rng() * dataSet["LandmarkConjunction"].length)
     ];
   let landmark =
     dataSet["RurLandmark"][
-      Math.floor(Math.random() * dataSet["RurLandmark"].length)
+      Math.floor(rng() * dataSet["RurLandmark"].length)
     ];
   let landmarkSuffix =
     dataSet["RurLandmarkSuffix"][
-      Math.floor(Math.random() * dataSet["RurLandmarkSuffix"].length)
+      Math.floor(rng() * dataSet["RurLandmarkSuffix"].length)
     ];
   let villageSuffix =
     dataSet["RurVillageSuffix"][
-      Math.floor(Math.random() * dataSet["RurVillageSuffix"].length)
+      Math.floor(rng() * dataSet["RurVillageSuffix"].length)
     ];
   let stateZone = dataSet[`${state}`][2];
   let village1 =
     dataSet[`${stateZone}villages`][
-      Math.floor(Math.random() * dataSet[`${stateZone}villages`].length)
+      Math.floor(rng() * dataSet[`${stateZone}villages`].length)
     ];
   let village2 =
     dataSet[`${stateZone}villages`][
-      Math.floor(Math.random() * dataSet[`${stateZone}villages`].length)
+      Math.floor(rng() * dataSet[`${stateZone}villages`].length)
     ];
   let villageNearbySuffix =
     dataSet["RurVillageNearbySuffix"][
-      Math.floor(Math.random() * dataSet["RurVillageNearbySuffix"].length)
+      Math.floor(rng() * dataSet["RurVillageNearbySuffix"].length)
     ];
   let pin = pinCode ?? generatePINCode(state);
   return `${landmarkConj}${landmark}${landmarkSuffix}, ${village1}${villageSuffix}, ${village2}${villageNearbySuffix}, Dist-${city}, ${state}, Pincode-${pin}`;
@@ -217,47 +218,47 @@ export function generateUrbAddress(
   let city = cityName ?? generateCity(state);
   let spotNo =
     dataSet["UrbSpotNo"][
-      Math.floor(Math.random() * dataSet["UrbSpotNo"].length)
+      Math.floor(rng() * dataSet["UrbSpotNo"].length)
     ];
   let num1 = numBetween(1, 99);
   let landmarkConj =
     dataSet["LandmarkConjunction"][
-      Math.floor(Math.random() * dataSet["LandmarkConjunction"].length)
+      Math.floor(rng() * dataSet["LandmarkConjunction"].length)
     ];
   let landmark =
     dataSet["UrbLandmark"][
-      Math.floor(Math.random() * dataSet["UrbLandmark"].length)
+      Math.floor(rng() * dataSet["UrbLandmark"].length)
     ];
   let landmarkSuffix =
     dataSet["UrbLandmarkSuffix"][
-      Math.floor(Math.random() * dataSet["UrbLandmarkSuffix"].length)
+      Math.floor(rng() * dataSet["UrbLandmarkSuffix"].length)
     ];
   let areaNameSelectorArray = ["FirstName", "LastName"];
   let areaNameSelector =
     areaNameSelectorArray[
-      Math.floor(Math.random() * areaNameSelectorArray.length)
+      Math.floor(rng() * areaNameSelectorArray.length)
     ];
   let areaName =
     dataSet[`${areaNameSelector}`][
-      Math.floor(Math.random() * dataSet[`${areaNameSelector}`].length)
+      Math.floor(rng() * dataSet[`${areaNameSelector}`].length)
     ];
   let areaSuffix =
     dataSet["UrbAreaSuffix"][
-      Math.floor(Math.random() * dataSet["UrbAreaSuffix"].length)
+      Math.floor(rng() * dataSet["UrbAreaSuffix"].length)
     ];
   let areaNo =
     dataSet["UrbAreaNo"][
-      Math.floor(Math.random() * dataSet["UrbAreaNo"].length)
+      Math.floor(rng() * dataSet["UrbAreaNo"].length)
     ];
   let num2 = numBetween(1, 99);
   let stateZone = dataSet[`${state}`][2];
   let subUrb =
     dataSet[`${stateZone}villages`][
-      Math.floor(Math.random() * dataSet[`${stateZone}villages`].length)
+      Math.floor(rng() * dataSet[`${stateZone}villages`].length)
     ];
   let suburbSuffix =
     dataSet["UrbSuburbSuffix"][
-      Math.floor(Math.random() * dataSet["UrbSuburbSuffix"].length)
+      Math.floor(rng() * dataSet["UrbSuburbSuffix"].length)
     ];
   let pin = pinCode ?? generatePINCode(state);
   return `${spotNo}${num1}, ${landmarkConj}${landmark}${landmarkSuffix}, ${areaName}${areaSuffix}, ${areaNo}${num2}, ${subUrb}${suburbSuffix}, ${city}, ${state}, Pincode-${pin}`;
@@ -269,7 +270,7 @@ export function generatePassport() {
   //Ref - https://www.geeksforgeeks.org/how-to-validate-indian-passport-number-using-regular-expression/
   let prefix =
     dataSet["PassPrefix"][
-      Math.floor(Math.random() * dataSet["PassPrefix"].length)
+      Math.floor(rng() * dataSet["PassPrefix"].length)
     ];
   let num1 = numBetween(1, 9);
   let num2 = numBetween(0, 9);
@@ -295,7 +296,7 @@ export function generateUPIm(mobile?: string) {
   let mobileNum = mobile ?? generateMobile();
   let upiEnd =
     dataSet["UPISuffix"][
-      Math.floor(Math.random() * dataSet["UPISuffix"].length)
+      Math.floor(rng() * dataSet["UPISuffix"].length)
     ];
   return `${mobileNum}@${upiEnd}`.toLowerCase();
 }
@@ -306,7 +307,7 @@ export function generateUPIn(fName?: string, lName?: string) {
   let lname = compact(lName ?? generateLastName());
   let upiEnd =
     dataSet["UPISuffix"][
-      Math.floor(Math.random() * dataSet["UPISuffix"].length)
+      Math.floor(rng() * dataSet["UPISuffix"].length)
     ];
   return `${fname}${lname}@${upiEnd}`.toLowerCase();
 }
@@ -334,11 +335,11 @@ export function generateRC(stateName?: string) {
   let rtoDigits = numBetween(1, parseInt(dataSet[`${state}`][1], 10));
   let letter1 =
     dataSet["Alphabets"][
-      Math.floor(Math.random() * dataSet["Alphabets"].length)
+      Math.floor(rng() * dataSet["Alphabets"].length)
     ];
   let letter2 =
     dataSet["Alphabets"][
-      Math.floor(Math.random() * dataSet["Alphabets"].length)
+      Math.floor(rng() * dataSet["Alphabets"].length)
     ];
   let lastDigits = numBetween(1000, 9999);
   if (rtoDigits < 10) {
@@ -361,10 +362,10 @@ export function generateRCBH() {
     (letter) => letter !== "I" && letter !== "O"
   );
   let letter1 =
-    availableLetters[Math.floor(Math.random() * availableLetters.length)];
+    availableLetters[Math.floor(rng() * availableLetters.length)];
   let letter2 =
     dataSet["Alphabets"][
-      Math.floor(Math.random() * dataSet["Alphabets"].length)
+      Math.floor(rng() * dataSet["Alphabets"].length)
     ];
 
   return `${year}BH${middigits}${letter1}${letter2}`;
@@ -375,15 +376,15 @@ export function generateRCBH() {
 export function generatePAN(lName?: string) {
   let letter1 =
     dataSet["Alphabets"][
-      Math.floor(Math.random() * dataSet["Alphabets"].length)
+      Math.floor(rng() * dataSet["Alphabets"].length)
     ];
   let letter2 =
     dataSet["Alphabets"][
-      Math.floor(Math.random() * dataSet["Alphabets"].length)
+      Math.floor(rng() * dataSet["Alphabets"].length)
     ];
   let letter3 =
     dataSet["Alphabets"][
-      Math.floor(Math.random() * dataSet["Alphabets"].length)
+      Math.floor(rng() * dataSet["Alphabets"].length)
     ];
   let letter4 = "P"; //for individual persons as per rules
 
@@ -391,13 +392,13 @@ export function generatePAN(lName?: string) {
     lName != null && lName.length > 0
       ? lName[0].toUpperCase()
       : dataSet["Alphabets"][
-          Math.floor(Math.random() * dataSet["Alphabets"].length)
+          Math.floor(rng() * dataSet["Alphabets"].length)
         ];
 
   let digits = numBetween(1000, 9999);
   let lastLetter =
     dataSet["Alphabets"][
-      Math.floor(Math.random() * dataSet["Alphabets"].length)
+      Math.floor(rng() * dataSet["Alphabets"].length)
     ];
 
   return `${letter1}${letter2}${letter3}${letter4}${letter5}${digits}${lastLetter}`;
@@ -409,7 +410,7 @@ export function generateVoterID() {
   let voterID = "";
   // Generate a 10-digit alphanumeric EPIC number
   for (let i = 0; i < 10; i++) {
-    voterID += characters.charAt(Math.floor(Math.random() * characters.length));
+    voterID += characters.charAt(Math.floor(rng() * characters.length));
   }
 
   return voterID;
@@ -424,14 +425,14 @@ export function generateDIN() {
 
 // CIN
 export function generateCIN(stateName?: string) {
-  const listingStatus = ["L", "U"][Math.floor(Math.random() * 2)];
+  const listingStatus = ["L", "U"][Math.floor(rng() * 2)];
   const industryCode = String(numBetween(10000, 99999));
   const state = stateName ?? generateState();
   const stateInitials = dataSet[`${state}`][0];
   const year = numBetween(1950, thisYear());
   const companyTypes = ["PLC", "PTC", "OPC"];
   const companyType =
-    companyTypes[Math.floor(Math.random() * companyTypes.length)];
+    companyTypes[Math.floor(rng() * companyTypes.length)];
   const registrationNumber = String(numBetween(0, 999999)).padStart(6, "0");
 
   return `${listingStatus}${industryCode}${stateInitials}${year}${companyType}${registrationNumber}`;
@@ -445,23 +446,23 @@ export function generatePANi() {
 
   // First Three Characters (random letters)
   for (let i = 0; i < 3; i++) {
-    pani += chars.charAt(Math.floor(Math.random() * chars.length));
+    pani += chars.charAt(Math.floor(rng() * chars.length));
   }
 
   // Fourth Character (category)
   const categories = ["P", "C", "H", "F", "A", "T", "B", "G", "L", "J"];
-  pani += categories[Math.floor(Math.random() * categories.length)];
+  pani += categories[Math.floor(rng() * categories.length)];
 
   // Fifth Character (first letter of name)
-  pani += chars.charAt(Math.floor(Math.random() * chars.length));
+  pani += chars.charAt(Math.floor(rng() * chars.length));
 
   // Sixth to Ninth Characters (random numbers)
   for (let i = 0; i < 4; i++) {
-    pani += numbers.charAt(Math.floor(Math.random() * numbers.length));
+    pani += numbers.charAt(Math.floor(rng() * numbers.length));
   }
 
   // Tenth Character (check digit)
-  pani += chars.charAt(Math.floor(Math.random() * chars.length));
+  pani += chars.charAt(Math.floor(rng() * chars.length));
 
   return pani;
 }
@@ -475,7 +476,7 @@ export function generateGSTIN(stateName?: string, pani?: string) {
   const defaultChar = "Z";
   const checksumChars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   const checksum = checksumChars.charAt(
-    Math.floor(Math.random() * checksumChars.length)
+    Math.floor(rng() * checksumChars.length)
   );
 
   return `${stateCode}${panCompany}${entityNumber}${defaultChar}${checksum}`;
@@ -489,14 +490,14 @@ export function generateLLPIN() {
 
   // First three characters (letters)
   for (let i = 0; i < 3; i++) {
-    llpin += chars.charAt(Math.floor(Math.random() * chars.length));
+    llpin += chars.charAt(Math.floor(rng() * chars.length));
   }
 
   llpin += "-";
 
   // Last four characters (numbers)
   for (let i = 0; i < 4; i++) {
-    llpin += numbers.charAt(Math.floor(Math.random() * numbers.length));
+    llpin += numbers.charAt(Math.floor(rng() * numbers.length));
   }
 
   return llpin;
@@ -510,19 +511,19 @@ export function generateTAN() {
 
   // Jurisdiction Code (3 letters)
   for (let i = 0; i < 3; i++) {
-    tan += chars.charAt(Math.floor(Math.random() * chars.length));
+    tan += chars.charAt(Math.floor(rng() * chars.length));
   }
 
   // Initial of the Name (1 letter)
-  tan += chars.charAt(Math.floor(Math.random() * chars.length));
+  tan += chars.charAt(Math.floor(rng() * chars.length));
 
   // Unique Number (5 digits)
   for (let i = 0; i < 5; i++) {
-    tan += numbers.charAt(Math.floor(Math.random() * numbers.length));
+    tan += numbers.charAt(Math.floor(rng() * numbers.length));
   }
 
   // Check Digit (1 letter)
-  tan += chars.charAt(Math.floor(Math.random() * chars.length));
+  tan += chars.charAt(Math.floor(rng() * chars.length));
 
   return tan;
 }
